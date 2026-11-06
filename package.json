@@ -1,0 +1,19 @@
+﻿{
+  "name": "max-group-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Споры на кружку, шахматы и мини-приложение для группового чата в MAX",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "start:bot": "start.cmd",
+    "check": "node scripts/check.js",
+    "simulate": "node scripts/simulate.js",
+    "simulate:bets": "node scripts/simulate-bets.js",
+    "test:chess": "node scripts/test-chess.mjs",
+    "test:reply": "node scripts/test-reply.mjs"
+  }
+}
