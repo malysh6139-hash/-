@@ -16,6 +16,56 @@ const seatsEl = document.getElementById('seats');
 const seatsTextEl = document.getElementById('seatsText');
 const takeBlackEl = document.getElementById('takeBlack');
 const watchOnlyEl = document.getElementById('watchOnly');
+const menuBtn = document.getElementById('menuBtn');
+const rulesEl = document.getElementById('rules');
+const rulesClose = document.getElementById('rulesClose');
+
+const FILE_NAMES = 'abcdefgh';
+
+function paintDiagrams() {
+  for (const el of document.querySelectorAll('[data-diagram]')) {
+    if (el.dataset.painted) continue;
+    el.dataset.painted = '1';
+    let pieces = {};
+    try {
+      pieces = JSON.parse(el.dataset.pieces || '{}');
+    } catch {
+      pieces = {};
+    }
+    const marks = new Set((el.dataset.marks || '').split(/\s+/).filter(Boolean));
+    const hits = new Set((el.dataset.hits || '').split(/\s+/).filter(Boolean));
+    const cells = [];
+    for (let index = 0; index < 64; index += 1) {
+      const file = index % 8;
+      const rank = Math.floor(index / 8);
+      const name = `${FILE_NAMES[file]}${rank + 1}`;
+      const isLight = (rank + file) % 2 === 1;
+      const classes = ['dg-sq', isLight ? 'light' : 'dark'];
+      const piece = pieces[name];
+      if (piece) classes.push('src');
+      if (!piece && marks.has(name)) classes.push('mark');
+      if (!piece && hits.has(name)) classes.push('hit');
+      cells.push(`<div class="${classes.join(' ')}">${piece ? `<span>${piece}</span>` : ''}</div>`);
+    }
+    el.innerHTML = cells.join('');
+  }
+}
+
+function openRules() {
+  paintDiagrams();
+  rulesEl.classList.remove('hidden');
+  rulesEl.querySelector('.rules-body').scrollTop = 0;
+}
+
+function closeRules() {
+  rulesEl.classList.add('hidden');
+}
+
+menuBtn.addEventListener('click', openRules);
+rulesClose.addEventListener('click', closeRules);
+rulesEl.addEventListener('click', (event) => {
+  if (event.target === rulesEl) closeRules();
+});
 
 let myRole = 'free';
 let offerSeat = false;
