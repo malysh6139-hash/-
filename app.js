@@ -1,11 +1,27 @@
 import { Board, parseMove, squareName } from './chess-engine.js';
 
-const SOLID_GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
-const OUTLINE_TO_SOLID = { '♔': '♚', '♕': '♛', '♖': '♜', '♗': '♝', '♘': '♞', '♙': '♟' };
+const PIECE_SHAPES = {
+  p: '<circle cx="50" cy="30" r="13"/><path d="M34 46h32l7 32H27z"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+  r: '<rect x="32" y="34" width="36" height="42"/><rect x="24" y="18" width="13" height="16"/><rect x="43" y="18" width="14" height="16"/><rect x="63" y="18" width="13" height="16"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+  n: '<path d="M34 84V56l10-12-4-9 11-10 15 6 5 16-5 15v22z"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+  b: '<circle cx="50" cy="24" r="9"/><path d="M50 34l17 28H33z"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+  q: '<path d="M28 42l6 28h32l6-28-10 12-6-18-6 16-6-16-6 18z"/><circle cx="50" cy="20" r="8"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+  k: '<rect x="45" y="10" width="10" height="26" rx="2"/><rect x="37" y="18" width="26" height="10" rx="2"/><path d="M32 46h36l7 32H25z"/><rect x="20" y="80" width="60" height="10" rx="4"/>',
+};
 
-function glyphFor(piece) {
-  const glyph = SOLID_GLYPHS[String(piece).toLowerCase()] ?? '';
-  return glyph ? `${glyph}\uFE0E` : '';
+const GLYPH_LETTER = {
+  '♟': 'p', '♜': 'r', '♞': 'n', '♝': 'b', '♛': 'q', '♚': 'k',
+  '♙': 'p', '♖': 'r', '♘': 'n', '♗': 'b', '♕': 'q', '♔': 'k',
+};
+const GLYPH_IS_WHITE = { '♙': true, '♖': true, '♘': true, '♗': true, '♕': true, '♔': true };
+
+function pieceSvg(piece) {
+  const letter = String(piece).toLowerCase();
+  const white = piece === String(piece).toUpperCase();
+  const fill = white ? '#ffffff' : '#101418';
+  const stroke = white ? '#0f1216' : '#eef1f5';
+  const shape = PIECE_SHAPES[letter] ?? PIECE_SHAPES.p;
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" fill="${fill}" stroke="${stroke}" stroke-width="5" stroke-linejoin="round">${shape}</svg>`;
 }
 
 const boardEl = document.getElementById('board');
@@ -26,7 +42,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '15';
+const APP_VERSION = '16';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -87,9 +103,9 @@ function paintDiagrams() {
       if (!raw && hits.has(name)) classes.push('hit');
       let inner = '';
       if (raw) {
-        const solid = `${OUTLINE_TO_SOLID[raw] ?? raw}\uFE0E`;
-        const white = Boolean(OUTLINE_TO_SOLID[raw]);
-        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}" style="${white ? PIECE_STYLE_WHITE : PIECE_STYLE_BLACK}">${solid}</span>`;
+        const white = Boolean(GLYPH_IS_WHITE[raw]);
+        const letter = GLYPH_LETTER[raw] ?? 'p';
+        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${pieceSvg(white ? letter.toUpperCase() : letter)}</span>`;
       }
       cells.push(`<div class="${classes.join(' ')}">${inner}</div>`);
     }
@@ -689,8 +705,7 @@ function render() {
         const glyph = document.createElement('span');
         const white = piece === piece.toUpperCase();
         glyph.className = white ? 'piece piece-w' : 'piece piece-b';
-        glyph.textContent = glyphFor(piece);
-        glyph.style.cssText = white ? PIECE_STYLE_WHITE : PIECE_STYLE_BLACK;
+        glyph.innerHTML = pieceSvg(piece);
         cell.appendChild(glyph);
       }
 
