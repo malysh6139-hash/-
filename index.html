@@ -2,11 +2,11 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="chess-version" content="22" />
+    <meta name="chess-version" content="23" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Шахматы — споры на кружку</title>
-    <link rel="stylesheet" href="style.css?v=22" />
-    <script src="config.js?v=22"></script>
+    <link rel="stylesheet" href="style.css?v=23" />
+    <script src="config.js?v=23"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://st.max.ru/js/max-web-app.js"></script>
   </head>
@@ -178,6 +178,16 @@
       </div>
     </div>
 
-    <script type="module" src="app.js?v=22"></script>
+    <button id="floatBtn" class="float-btn" type="button" aria-label="меню">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7" rx="2" fill="currentColor" />
+        <rect x="14" y="3" width="7" height="7" rx="2" fill="currentColor" />
+        <rect x="3" y="14" width="7" height="7" rx="2" fill="currentColor" />
+        <path d="M17.5 13.6l3.9 3.9-3.9 3.9-3.9-3.9z" fill="currentColor" />
+      </svg>
+    </button>
+    <div id="floatMenu" class="float-menu hidden"></div>
+
+    <script type="module" src="app.js?v=23"></script>
   </body>
 </html>
