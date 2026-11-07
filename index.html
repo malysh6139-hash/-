@@ -36,6 +36,16 @@
           <button id="flip" type="button">Перевернуть</button>
           <button id="reset" type="button">Начать заново</button>
         </div>
+        <div class="chat">
+          <div id="chatHead" class="chat-head">Чат партии <span class="muted">— пишут все, кто за доской</span></div>
+          <div id="chatList" class="chat-list">
+            <div class="chat-empty">Сообщений пока нет</div>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <input id="chatInput" type="text" maxlength="200" placeholder="Написать всем за доской…" autocomplete="off" />
+            <button id="chatSend" type="submit" aria-label="отправить">→</button>
+          </form>
+        </div>
         <div id="hint" class="hint">
           Тапни фигуру, потом клетку. Играть можно только вдвоём в этом чате.
         </div>
