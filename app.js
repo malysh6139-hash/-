@@ -96,6 +96,132 @@ function clearGame() {
   }
 }
 
+const CFG = window.CHESS_CONFIG ?? {};
+let supabaseClient = null;
+let gameRowId = null;
+let cloudMode = false;
+let cloudChannel = null;
+
+function cloudReady() {
+  return Boolean(CFG.supabaseUrl && CFG.supabaseKey && window.supabase);
+}
+
+function roomName() {
+  return myChat() ? `chat-${myChat()}` : 'demo';
+}
+
+function rowToGame(row) {
+  return {
+    id: 0,
+    fen: row.board_state,
+    moves: Array.isArray(row.moves) ? row.moves : [],
+    status: 'open',
+    winner: null,
+    white: { name: 'Белые' },
+    black: { name: 'Чёрные' },
+    role: 'white',
+    canMove: true,
+  };
+}
+
+function applyRow(row) {
+  if (!row?.board_state) return;
+  try {
+    new Board(row.board_state);
+  } catch {
+    return;
+  }
+  game = rowToGame(row);
+  render();
+  saveGame();
+}
+
+async function cloudStart() {
+  if (!cloudReady()) return false;
+  supabaseClient = supabaseClient ?? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  const table = supabaseClient.from(CFG.table || 'games');
+  const room = roomName();
+
+  const found = await table.select('*').eq('room', room).limit(1);
+  if (found.error) throw new Error(found.error.message);
+  let row = found.data?.[0];
+
+  if (!row) {
+    const fresh = new Board();
+    const created = await table
+      .insert([{ room, board_state: fresh.fen(), is_white_turn: true, moves: [] }])
+      .select()
+      .single();
+    if (created.error) throw new Error(created.error.message);
+    row = created.data;
+  }
+
+  gameRowId = row?.id ?? null;
+  cloudMode = true;
+  localMode = true;
+  applyRow(row);
+  cloudSubscribe();
+  return true;
+}
+
+function cloudSubscribe() {
+  if (!supabaseClient || !gameRowId) return;
+  if (cloudChannel) supabaseClient.removeChannel(cloudChannel);
+  cloudChannel = supabaseClient
+    .channel(`chess-${roomName()}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: CFG.table || 'games', filter: `room=eq.${roomName()}` },
+      (payload) => {
+        if (payload?.new?.id === gameRowId) applyRow(payload.new);
+      },
+    )
+    .subscribe();
+}
+
+async function cloudWrite(fields) {
+  const table = supabaseClient.from(CFG.table || 'games');
+  const res = await table
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('id', gameRowId)
+    .select()
+    .single();
+  if (res.error) throw new Error(res.error.message);
+  applyRow(res.data);
+}
+
+async function cloudMove(from, to, promo) {
+  if (!game || busy) return;
+  busy = true;
+  try {
+    const position = new Board(game.fen);
+    const options = position.movesFrom(from).filter((move) => move.to === to);
+    const move = options.find((item) => item.promotion === promo) ?? options[0];
+    if (!move) {
+      statusEl.textContent = 'Так нельзя';
+      return;
+    }
+    const next = position.apply(move);
+    const moves = [...(game.moves ?? []), `${squareName(from)}-${squareName(to)}`];
+    await cloudWrite({ board_state: next.fen(), is_white_turn: next.turn === 'w', moves });
+    selected = null;
+    legal = [];
+  } catch (error) {
+    statusEl.textContent = `Облако недоступно: ${error.message}`;
+  } finally {
+    busy = false;
+  }
+}
+
+async function cloudReset() {
+  try {
+    const fresh = new Board();
+    await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [] });
+  } catch (error) {
+    statusEl.textContent = `Облако недоступно: ${error.message}`;
+  }
+}
+
 function cellIndex(file, rankFromTop) {
   const rank = flipped ? rankFromTop : 7 - rankFromTop;
   const f = flipped ? 7 - file : file;
@@ -230,6 +356,10 @@ function onCell(index) {
 }
 
 async function sendMove(from, to, promo) {
+  if (cloudMode) {
+    await cloudMove(from, to, promo);
+    return;
+  }
   if (localMode) {
     const options = board.movesFrom(from).filter((m) => m.to === to);
     const move = options.find((m) => m.promotion === promo) ?? options[0];
@@ -286,6 +416,10 @@ document.getElementById('reset').addEventListener('click', () => {
   pendingPromotion = null;
   promoEl.classList.add('hidden');
   flipped = false;
+  if (cloudMode) {
+    cloudReset();
+    return;
+  }
   if (localMode || !myChat() || !myId()) {
     localMode = true;
     startLocal();
@@ -311,6 +445,17 @@ document.getElementById('copyInvite').addEventListener('click', async () => {
 });
 
 async function enter() {
+  if (cloudReady()) {
+    try {
+      if (await cloudStart()) {
+        hintEl.textContent = 'Партия в облаке: ход виден на обоих телефонах.';
+        return;
+      }
+    } catch (error) {
+      cloudMode = false;
+      statusEl.textContent = `Облако не отвечает: ${error.message}`;
+    }
+  }
   if (!myChat() || !myId()) {
     startLocal();
     return;
