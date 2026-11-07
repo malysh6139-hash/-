@@ -25,6 +25,8 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
+const PIECE_STYLE_WHITE = 'color:#ffffff;-webkit-text-stroke:1px #10131a;text-shadow:0 0 2px #000,0 0 2px #000,0 1px 3px rgba(0,0,0,.85)';
+const PIECE_STYLE_BLACK = 'color:#0d1015;-webkit-text-stroke:1px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)';
 
 const MOJIBAKE = /Р[СџЎћ]|С[‚ѓ„…†‡€]|РµР|С‚Р|С‡Р|С€Р|РѕР|РїС|РёР/;
 
@@ -81,7 +83,7 @@ function paintDiagrams() {
       if (raw) {
         const solid = OUTLINE_TO_SOLID[raw] ?? raw;
         const white = Boolean(OUTLINE_TO_SOLID[raw]);
-        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${solid}</span>`;
+        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}" style="${white ? PIECE_STYLE_WHITE : PIECE_STYLE_BLACK}">${solid}</span>`;
       }
       cells.push(`<div class="${classes.join(' ')}">${inner}</div>`);
     }
@@ -306,32 +308,34 @@ async function loadTables() {
 
 function pickTable(rows) {
   if (!rows?.length) return null;
+  const open = rows.filter((row) => row.status === 'open');
+  const pool = open.length ? open : rows;
   const saved = savedTableId();
-  const bySaved = saved ? rows.find((row) => row.id === saved) : null;
+  const bySaved = saved ? pool.find((row) => row.id === saved) : null;
   if (bySaved) return bySaved;
   const me = myId();
   const mine = me
-    ? rows.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me)
+    ? pool.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me)
     : null;
   if (mine) return mine;
-  return rows.find((row) => row.status === 'open') ?? rows.find((row) => row.status !== 'done' && row.status !== 'closed') ?? rows[0];
+  return pool[0];
 }
 
 function renderTables() {
   if (!tablesEl) return;
-  if (tables.length < 2) {
+  const open = tables.filter((row) => row.status === 'open');
+  if (open.length < 2) {
     tablesEl.classList.add('hidden');
     tablesEl.innerHTML = '';
     return;
   }
   tablesEl.classList.remove('hidden');
   const me = myId();
-  tablesEl.innerHTML = tables
+  tablesEl.innerHTML = open
     .map((row) => {
       const active = row.id === gameRowId ? ' active' : '';
       const mine = me && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me) ? ' •' : '';
-      const done = row.status === 'done' ? ' ✓' : row.status === 'closed' ? ' ✕' : '';
-      return `<button type="button" class="table-chip${active}" data-table="${row.id}">Стол #${row.game_no ?? 1}${mine}${done}</button>`;
+      return `<button type="button" class="table-chip${active}" data-table="${row.id}">Стол ${row.game_no ?? 1}${mine}</button>`;
     })
     .join('');
 }
@@ -510,7 +514,39 @@ async function cloudCloseTable() {
     gameRowId = next.id;
     rememberTable(next.id);
     applyRow(next);
+    renderTables();
+    return;
   }
+  await openFreshTable();
+}
+
+async function openFreshTable() {
+  const table = supabaseClient.from(CFG.table || 'games');
+  const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
+  const fresh = new Board();
+  const base = {
+    room: roomName(),
+    board_state: fresh.fen(),
+    is_white_turn: true,
+    moves: [],
+    white_id: myId() || null,
+    white_name: myName(),
+    black_id: null,
+    black_name: null,
+    status: 'open',
+    updated_at: new Date().toISOString(),
+  };
+  let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
+  if (created.error) created = await table.insert([base]).select().single();
+  if (created.error) {
+    statusEl.textContent = `Не получилось открыть новый стол: ${created.error.message}`;
+    return;
+  }
+  const row = created.data;
+  tables = [row, ...tables];
+  gameRowId = row.id;
+  rememberTable(row.id);
+  applyRow(row);
   renderTables();
 }
 
@@ -648,6 +684,7 @@ function render() {
         const white = piece === piece.toUpperCase();
         glyph.className = white ? 'piece piece-w' : 'piece piece-b';
         glyph.textContent = glyphFor(piece);
+        glyph.style.cssText = white ? PIECE_STYLE_WHITE : PIECE_STYLE_BLACK;
         cell.appendChild(glyph);
       }
 
