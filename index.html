@@ -2,11 +2,11 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="chess-version" content="19" />
+    <meta name="chess-version" content="20" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Шахматы — споры на кружку</title>
-    <link rel="stylesheet" href="style.css?v=19" />
-    <script src="config.js?v=19"></script>
+    <link rel="stylesheet" href="style.css?v=20" />
+    <script src="config.js?v=20"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://st.max.ru/js/max-web-app.js"></script>
   </head>
@@ -14,6 +14,7 @@
     <header class="bar">
       <div class="title">♟ Шахматы <span id="gameId" class="muted"></span></div>
       <div class="bar-right">
+        <div id="people" class="people"></div>
         <div id="status" class="status">Загружаюсь…</div>
         <button id="menuBtn" class="dots" type="button" aria-label="правила игры" title="Правила игры">⋮</button>
       </div>
@@ -176,6 +177,6 @@
       </div>
     </div>
 
-    <script type="module" src="app.js?v=19"></script>
+    <script type="module" src="app.js?v=20"></script>
   </body>
 </html>
