@@ -1,13 +1,6 @@
 import { Board, parseMove, squareName } from './chess-engine.js';
 
-const PIECE_SHAPES = {
-  p: '<circle cx="50" cy="28" r="11"/><path d="M37 43h26l3 8H34z"/><path d="M36 51h28l6 26H30z"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-  r: '<rect x="24" y="14" width="13" height="16" rx="2"/><rect x="43.5" y="14" width="13" height="16" rx="2"/><rect x="63" y="14" width="13" height="16" rx="2"/><path d="M28 30h44v14H28z"/><path d="M32 44h36l6 34H26z"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-  n: '<path d="M34 80V56l4-10-4-8 8-10 4-8 4 8 10 4 8 8 2 8-6 6-4 6 2 20z"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-  b: '<circle cx="50" cy="26" r="8"/><path d="M50 35l14 26H36z"/><rect x="38" y="62" width="24" height="9" rx="3"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-  q: '<circle cx="50" cy="20" r="6"/><path d="M26 38l6 26h36l6-26-11 12-7-16-6 14-6-14-7 16z"/><rect x="34" y="66" width="32" height="8" rx="3"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-  k: '<rect x="45" y="10" width="10" height="24" rx="2"/><rect x="38" y="17" width="24" height="10" rx="2"/><path d="M30 40h40l5 26H25z"/><rect x="34" y="68" width="32" height="8" rx="3"/><rect x="18" y="80" width="64" height="10" rx="5"/>',
-};
+import { PIECE_IMAGES } from './pieces.js';
 
 const GLYPH_LETTER = {
   '♟': 'p', '♜': 'r', '♞': 'n', '♝': 'b', '♛': 'q', '♚': 'k',
@@ -15,14 +8,13 @@ const GLYPH_LETTER = {
 };
 const GLYPH_IS_WHITE = { '♙': true, '♖': true, '♘': true, '♗': true, '♕': true, '♔': true };
 
-function pieceSvg(piece) {
-  const letter = String(piece).toLowerCase();
+function pieceImage(piece) {
   const white = piece === String(piece).toUpperCase();
-  const fill = white ? '#ffffff' : '#101418';
-  const stroke = white ? '#0f1216' : '#eef1f5';
-  const body = PIECE_SHAPES[letter] ?? PIECE_SHAPES.p;
-  const eye = letter === 'n' ? `<circle cx="54" cy="38" r="3" stroke="none" fill="${stroke}"/>` : '';
-  return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round">${body}${eye}</svg>`;
+  const letter = GLYPH_LETTER[piece] ?? String(piece).toLowerCase();
+  const name = `${white ? 'w' : 'b'}${letter.toUpperCase()}`;
+  const svg = PIECE_IMAGES[name] ?? PIECE_IMAGES.wP;
+  const uri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `<img src="${uri}" alt="" draggable="false">`;
 }
 
 const boardEl = document.getElementById('board');
@@ -43,7 +35,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '18';
+const APP_VERSION = '19';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -106,7 +98,7 @@ function paintDiagrams() {
       if (raw) {
         const white = Boolean(GLYPH_IS_WHITE[raw]);
         const letter = GLYPH_LETTER[raw] ?? 'p';
-        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${pieceSvg(white ? letter.toUpperCase() : letter)}</span>`;
+        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${pieceImage(white ? letter.toUpperCase() : letter)}</span>`;
       }
       cells.push(`<div class="${classes.join(' ')}">${inner}</div>`);
     }
@@ -706,7 +698,7 @@ function render() {
         const glyph = document.createElement('span');
         const white = piece === piece.toUpperCase();
         glyph.className = white ? 'piece piece-w' : 'piece piece-b';
-        glyph.innerHTML = pieceSvg(piece);
+        glyph.innerHTML = pieceImage(piece);
         cell.appendChild(glyph);
       }
 
