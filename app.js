@@ -188,6 +188,15 @@ async function cloudStart() {
   }
   if (!row) throw new Error('партия не создалась');
 
+  if (!Number(row.white_id ?? 0) && myId()) {
+    const claim = await table
+      .update({ white_id: myId(), white_name: myName(), updated_at: new Date().toISOString() })
+      .eq('id', row.id)
+      .is('white_id', null)
+      .select();
+    if (!claim.error && claim.data?.[0]) row = claim.data[0];
+  }
+
   gameRowId = row?.id ?? null;
   cloudMode = true;
   localMode = true;
@@ -523,7 +532,6 @@ async function enter() {
   if (cloudReady()) {
     try {
       if (await cloudStart()) {
-        hintEl.textContent = 'Партия в облаке: ход виден на обоих телефонах.';
         return;
       }
     } catch (error) {
