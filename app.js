@@ -1,9 +1,11 @@
 import { Board, parseMove, squareName } from './chess-engine.js';
 
-const GLYPHS = {
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
-  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
-};
+const SOLID_GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const OUTLINE_TO_SOLID = { '♔': '♚', '♕': '♛', '♖': '♜', '♗': '♝', '♘': '♞', '♙': '♟' };
+
+function glyphFor(piece) {
+  return SOLID_GLYPHS[String(piece).toLowerCase()] ?? '';
+}
 
 const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
@@ -41,11 +43,17 @@ function paintDiagrams() {
       const name = `${FILE_NAMES[file]}${rank + 1}`;
       const isLight = (rank + file) % 2 === 1;
       const classes = ['dg-sq', isLight ? 'light' : 'dark'];
-      const piece = pieces[name];
-      if (piece) classes.push('src');
-      if (!piece && marks.has(name)) classes.push('mark');
-      if (!piece && hits.has(name)) classes.push('hit');
-      cells.push(`<div class="${classes.join(' ')}">${piece ? `<span>${piece}</span>` : ''}</div>`);
+      const raw = pieces[name];
+      if (raw) classes.push('src');
+      if (!raw && marks.has(name)) classes.push('mark');
+      if (!raw && hits.has(name)) classes.push('hit');
+      let inner = '';
+      if (raw) {
+        const solid = OUTLINE_TO_SOLID[raw] ?? raw;
+        const white = Boolean(OUTLINE_TO_SOLID[raw]);
+        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${solid}</span>`;
+      }
+      cells.push(`<div class="${classes.join(' ')}">${inner}</div>`);
     }
     el.innerHTML = cells.join('');
   }
@@ -446,7 +454,13 @@ function render() {
       const cell = document.createElement('div');
       cell.className = `cell ${isLight ? 'light' : 'dark'}`;
       cell.dataset.index = String(index);
-      cell.textContent = piece ? GLYPHS[piece] : '';
+      if (piece) {
+        const glyph = document.createElement('span');
+        const white = piece === piece.toUpperCase();
+        glyph.className = white ? 'piece piece-w' : 'piece piece-b';
+        glyph.textContent = glyphFor(piece);
+        cell.appendChild(glyph);
+      }
 
       if (selected === index) cell.classList.add('selected');
       const target = legal.find((move) => move.to === index);
