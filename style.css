@@ -270,6 +270,13 @@ main {
   color: #10131a;
 }
 
+.piece {
+  font-family: 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Segoe UI Symbol', 'DejaVu Sans', serif;
+  font-variant-emoji: text;
+  font-size: inherit;
+  line-height: 1;
+}
+
 .piece-w {
   color: #ffffff;
   text-shadow:
