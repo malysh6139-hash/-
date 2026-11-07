@@ -148,6 +148,30 @@ main {
   gap: 8px;
 }
 
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #23282f;
+  border: 1px solid #2f3742;
+}
+
+.seats.hidden {
+  display: none;
+}
+
+.seats-text {
+  font-size: 13px;
+  color: #cfd8e3;
+}
+
+.seats-actions {
+  display: flex;
+  gap: 8px;
+}
+
 button {
   flex: 1;
   padding: 10px 12px;
