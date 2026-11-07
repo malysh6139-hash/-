@@ -37,7 +37,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '22';
+const APP_VERSION = '23';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -1182,4 +1182,209 @@ function startLocal() {
   hintEl.textContent = saved?.game
     ? 'Партия сохранена на этом телефоне: продолжаем с того же хода.'
     : 'Без сервера: ходят оба по очереди на этом экране. Ходы в чат не уходят.';
+}
+
+
+const floatBtnEl = document.getElementById('floatBtn');
+const floatMenuEl = document.getElementById('floatMenu');
+const FLOAT_KEY = 'chess-float-pos';
+const BOT_LEVEL_NAMES = { easy: 'Лёгкий', mid: 'Средний', hard: 'Гроссмейстер' };
+
+let floatStep = 'root';
+let floatSide = 'w';
+let dragState = null;
+
+function placeFloat(left, top) {
+  if (!floatBtnEl) return { x: 8, y: 8 };
+  const size = floatBtnEl.offsetWidth || 44;
+  const x = Math.min(Math.max(8, left), Math.max(8, window.innerWidth - size - 8));
+  const y = Math.min(Math.max(8, top), Math.max(8, window.innerHeight - size - 8));
+  floatBtnEl.style.left = `${x}px`;
+  floatBtnEl.style.top = `${y}px`;
+  floatBtnEl.style.right = 'auto';
+  return { x, y };
+}
+
+function loadFloatPosition() {
+  if (!floatBtnEl) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(FLOAT_KEY) ?? 'null');
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      placeFloat(saved.x, saved.y);
+      return;
+    }
+  } catch {
+    /* позиция по умолчанию */
+  }
+  placeFloat(window.innerWidth - 60, 10);
+}
+
+function closeFloatMenu() {
+  if (!floatMenuEl) return;
+  floatMenuEl.classList.add('hidden');
+  floatStep = 'root';
+}
+
+function openFloatMenuAt() {
+  if (!floatMenuEl || !floatBtnEl) return;
+  const rect = floatBtnEl.getBoundingClientRect();
+  renderFloatMenu();
+  floatMenuEl.classList.remove('hidden');
+  const menuRect = floatMenuEl.getBoundingClientRect();
+  const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuRect.width - 8));
+  const top = Math.min(rect.bottom + 6, Math.max(8, window.innerHeight - menuRect.height - 8));
+  floatMenuEl.style.left = `${left}px`;
+  floatMenuEl.style.top = `${top}px`;
+}
+
+function menuItem(text, action) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = text;
+  button.addEventListener('click', () => action().catch(() => {}));
+  return button;
+}
+
+async function createBotTable(side, level) {
+  if (!cloudReady() || !supabaseClient) {
+    statusEl.textContent = 'Без связи нельзя позвать бота';
+    return;
+  }
+  const botId = Number(CFG.botId ?? 0);
+  if (!botId) {
+    statusEl.textContent = 'Бот не настроен';
+    return;
+  }
+  const botName = `Бот · ${BOT_LEVEL_NAMES[level] ?? BOT_LEVEL_NAMES.easy}`;
+  const human = { id: myId() || 0, name: myName() };
+  const machine = { id: botId, name: botName };
+  const white = side === 'w' ? human : machine;
+  const black = side === 'w' ? machine : human;
+
+  const table = supabaseClient.from(CFG.table || 'games');
+  const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
+  const fresh = new Board();
+  const base = {
+    room: roomName(),
+    board_state: fresh.fen(),
+    is_white_turn: true,
+    moves: [],
+    white_id: white.id || null,
+    white_name: white.name,
+    black_id: black.id || null,
+    black_name: black.name,
+    status: 'open',
+    updated_at: new Date().toISOString(),
+  };
+
+  let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
+  if (created.error) created = await table.insert([base]).select().single();
+  if (created.error) {
+    statusEl.textContent = `Бот не сел: ${created.error.message}`;
+    return;
+  }
+  const row = created.data;
+  tables = [row, ...tables];
+  gameRowId = row.id;
+  rememberTable(row.id);
+  applyRow(row);
+  renderTables();
+  resetChatForGame();
+  closeFloatMenu();
+  statusEl.textContent = `Стол с ботом (${BOT_LEVEL_NAMES[level] ?? ''}) готов`;
+}
+
+function renderFloatMenu() {
+  if (!floatMenuEl) return;
+  floatMenuEl.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'float-menu-title';
+  title.textContent = 'Меню';
+  floatMenuEl.appendChild(title);
+
+  if (floatStep === 'root') {
+    floatMenuEl.appendChild(menuItem('♟ Игра', async () => { floatStep = 'game'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('🎲 Предложить спор', async () => {
+      closeFloatMenu();
+      hintEl.textContent = 'Напиши в чат: спор Локо-Динамо — бот соберёт ставки';
+    }));
+    floatMenuEl.appendChild(menuItem('🍺 Долги', async () => {
+      closeFloatMenu();
+      hintEl.textContent = 'Напиши в чат: долги — бот покажет, кто кому проставляется';
+    }));
+    floatMenuEl.appendChild(menuItem('ℹ Правила', async () => { closeFloatMenu(); openRules(); }));
+    return;
+  }
+
+  if (floatStep === 'game') {
+    floatMenuEl.appendChild(menuItem('♟ Шахматы', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'root'; renderFloatMenu(); }));
+    return;
+  }
+
+  if (floatStep === 'mode') {
+    floatMenuEl.appendChild(menuItem('👤 С соперником', async () => {
+      await openFreshTable();
+      closeFloatMenu();
+      hintEl.textContent = 'Стол создан. Позови соперника в чате';
+    }));
+    floatMenuEl.appendChild(menuItem('🤖 С ботом', async () => { floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'game'; renderFloatMenu(); }));
+    return;
+  }
+
+  if (floatStep === 'side') {
+    floatMenuEl.appendChild(menuItem('♔ Я белые', async () => { floatSide = 'w'; floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('♚ Я чёрные', async () => { floatSide = 'b'; floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    return;
+  }
+
+  floatMenuEl.appendChild(menuItem('Лёгкий', async () => createBotTable(floatSide, 'easy')));
+  floatMenuEl.appendChild(menuItem('Средний', async () => createBotTable(floatSide, 'mid')));
+  floatMenuEl.appendChild(menuItem('Гроссмейстер', async () => createBotTable(floatSide, 'hard')));
+  floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'side'; renderFloatMenu(); }));
+}
+
+if (floatBtnEl) {
+  floatBtnEl.addEventListener('pointerdown', (event) => {
+    const rect = floatBtnEl.getBoundingClientRect();
+    dragState = {
+      startX: event.clientX,
+      startY: event.clientY,
+      x: rect.left,
+      y: rect.top,
+      moved: false,
+      last: { x: rect.left, y: rect.top },
+    };
+    try { floatBtnEl.setPointerCapture(event.pointerId); } catch { /* старые браузеры */ }
+  });
+
+  floatBtnEl.addEventListener('pointermove', (event) => {
+    if (!dragState) return;
+    const dx = event.clientX - dragState.startX;
+    const dy = event.clientY - dragState.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragState.moved = true;
+    dragState.last = placeFloat(dragState.x + dx, dragState.y + dy);
+  });
+
+  floatBtnEl.addEventListener('pointerup', () => {
+    if (!dragState) return;
+    const state = dragState;
+    dragState = null;
+    if (state.moved) {
+      try { localStorage.setItem(FLOAT_KEY, JSON.stringify(state.last)); } catch { /* без сохранения */ }
+      return;
+    }
+    if (floatMenuEl && !floatMenuEl.classList.contains('hidden')) closeFloatMenu();
+    else openFloatMenuAt();
+  });
+
+  loadFloatPosition();
+  window.addEventListener('resize', () => {
+    if (!floatBtnEl) return;
+    const rect = floatBtnEl.getBoundingClientRect();
+    placeFloat(rect.left, rect.top);
+    if (floatMenuEl && !floatMenuEl.classList.contains('hidden')) openFloatMenuAt();
+  });
 }
