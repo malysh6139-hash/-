@@ -317,6 +317,116 @@ async function cloudReset() {
   }
 }
 
+const CHAT_TABLE = 'chess_messages';
+const chatHeadEl = document.getElementById('chatHead');
+const chatListEl = document.getElementById('chatList');
+const chatFormEl = document.getElementById('chatForm');
+const chatInputEl = document.getElementById('chatInput');
+
+let chatMessages = [];
+let chatChannel = null;
+let chatReady = false;
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
+}
+
+function chatTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderChat() {
+  if (!chatListEl) return;
+  if (!chatReady) {
+    chatListEl.innerHTML = '<div class="chat-empty">Чат включится после запуска SQL в Supabase.</div>';
+    return;
+  }
+  if (!chatMessages.length) {
+    chatListEl.innerHTML = '<div class="chat-empty">Сообщений пока нет</div>';
+    return;
+  }
+  chatListEl.innerHTML = chatMessages
+    .map((message) => {
+      const mine = Number(message.user_id ?? 0) === myId() ? ' mine' : '';
+      const name = escapeHtml(message.name || 'Гость');
+      const text = escapeHtml(message.text);
+      return `<div class="chat-msg${mine}"><span class="chat-name">${name}</span><span class="chat-text">${text}</span><span class="chat-time">${chatTime(message.created_at)}</span></div>`;
+    })
+    .join('');
+  chatListEl.scrollTop = chatListEl.scrollHeight;
+}
+
+function addChatMessage(message) {
+  if (!message?.id) return;
+  if (chatMessages.some((item) => item.id === message.id)) return;
+  chatMessages.push(message);
+  if (chatMessages.length > 60) chatMessages = chatMessages.slice(-60);
+  renderChat();
+}
+
+function subscribeChat() {
+  if (!supabaseClient || chatChannel) return;
+  chatChannel = supabaseClient
+    .channel(`chat-${roomName()}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: CHAT_TABLE, filter: `room=eq.${roomName()}` },
+      (payload) => addChatMessage(payload?.new),
+    )
+    .subscribe();
+}
+
+async function loadChat() {
+  if (!cloudReady() || !chatFormEl) return;
+  supabaseClient = supabaseClient ?? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  const res = await supabaseClient
+    .from(CHAT_TABLE)
+    .select('*')
+    .eq('room', roomName())
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (res.error) {
+    chatReady = false;
+    if (chatHeadEl) chatHeadEl.textContent = 'Чат недоступен';
+    renderChat();
+    return;
+  }
+  chatReady = true;
+  chatMessages = (res.data ?? []).slice().reverse();
+  renderChat();
+  subscribeChat();
+}
+
+async function sendChat() {
+  if (!chatInputEl) return;
+  const text = chatInputEl.value.trim();
+  if (!text) return;
+  chatInputEl.value = '';
+  if (!chatReady) {
+    if (chatHeadEl) chatHeadEl.textContent = 'Чат ещё не включён — нужна таблица в Supabase';
+    return;
+  }
+  const res = await supabaseClient
+    .from(CHAT_TABLE)
+    .insert([{ room: roomName(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) }])
+    .select()
+    .single();
+  if (res.error) {
+    if (chatHeadEl) chatHeadEl.textContent = `Чат: ${res.error.message}`;
+    return;
+  }
+  addChatMessage(res.data);
+}
+
+if (chatFormEl) {
+  chatFormEl.addEventListener('submit', (event) => {
+    event.preventDefault();
+    sendChat().catch(() => {});
+  });
+}
+
 function cellIndex(file, rankFromTop) {
   const rank = flipped ? rankFromTop : 7 - rankFromTop;
   const f = flipped ? 7 - file : file;
@@ -582,6 +692,7 @@ async function enter() {
   if (cloudReady()) {
     try {
       if (await cloudStart()) {
+        loadChat().catch(() => {});
         return;
       }
     } catch (error) {
