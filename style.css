@@ -271,11 +271,10 @@ main {
 }
 
 .piece {
+  position: absolute;
+  inset: 6%;
   display: block;
-  width: 100%;
-  height: 100%;
-  padding: 7%;
-  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .piece svg {
