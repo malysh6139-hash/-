@@ -4,7 +4,8 @@ const SOLID_GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟
 const OUTLINE_TO_SOLID = { '♔': '♚', '♕': '♛', '♖': '♜', '♗': '♝', '♘': '♞', '♙': '♟' };
 
 function glyphFor(piece) {
-  return SOLID_GLYPHS[String(piece).toLowerCase()] ?? '';
+  const glyph = SOLID_GLYPHS[String(piece).toLowerCase()] ?? '';
+  return glyph ? `${glyph}\uFE0E` : '';
 }
 
 const boardEl = document.getElementById('board');
@@ -25,9 +26,10 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '14';
-const PIECE_STYLE_WHITE = 'color:#ffffff;-webkit-text-stroke:1px #10131a;text-shadow:0 0 2px #000,0 0 2px #000,0 1px 3px rgba(0,0,0,.85)';
-const PIECE_STYLE_BLACK = 'color:#0d1015;-webkit-text-stroke:1px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)';
+const APP_VERSION = '15';
+const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
+const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
+const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
 
 const MOJIBAKE = /Р[СџЎћ]|С[‚ѓ„…†‡€]|РµР|С‚Р|С‡Р|С€Р|РѕР|РїС|РёР/;
 
@@ -85,7 +87,7 @@ function paintDiagrams() {
       if (!raw && hits.has(name)) classes.push('hit');
       let inner = '';
       if (raw) {
-        const solid = OUTLINE_TO_SOLID[raw] ?? raw;
+        const solid = `${OUTLINE_TO_SOLID[raw] ?? raw}\uFE0E`;
         const white = Boolean(OUTLINE_TO_SOLID[raw]);
         inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}" style="${white ? PIECE_STYLE_WHITE : PIECE_STYLE_BLACK}">${solid}</span>`;
       }
