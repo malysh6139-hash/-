@@ -9,6 +9,7 @@ function glyphFor(piece) {
 
 const boardEl = document.getElementById('board');
 const tablesEl = document.getElementById('tables');
+const roleEl = document.getElementById('role');
 const statusEl = document.getElementById('status');
 const gameIdEl = document.getElementById('gameId');
 const playersEl = document.getElementById('players');
@@ -652,6 +653,23 @@ function render() {
   }
 
   gameIdEl.textContent = game.id ? `#${game.id}` : '';
+
+  if (roleEl) {
+    if (myRole === 'white') {
+      roleEl.className = 'role white';
+      roleEl.textContent = 'Ты играешь белыми';
+    } else if (myRole === 'black') {
+      roleEl.className = 'role black';
+      roleEl.textContent = 'Ты играешь чёрными';
+    } else if (myRole === 'spectator') {
+      roleEl.className = 'role spectator';
+      roleEl.textContent = 'Ты смотришь';
+    } else {
+      roleEl.className = 'role hidden';
+      roleEl.textContent = '';
+    }
+  }
+
   playersEl.innerHTML = '';
 
   const entries = [
