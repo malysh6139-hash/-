@@ -37,7 +37,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '25';
+const APP_VERSION = '26';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -357,16 +357,38 @@ async function loadTables() {
 function pickTable(rows) {
   if (!rows?.length) return null;
   const open = rows.filter((row) => row.status === 'open');
+  const newest = (list) => [...list].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0] ?? null;
   const pool = open.length ? open : rows;
   const saved = savedTableId();
   const bySaved = saved ? pool.find((row) => row.id === saved) : null;
   if (bySaved) return bySaved;
   const me = myId();
-  const mine = me
-    ? pool.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me)
-    : null;
-  if (mine) return mine;
-  return pool[0];
+  if (me) {
+    const mine = pool.filter((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+    const latest = newest(mine);
+    if (latest) return latest;
+  }
+  return newest(pool);
+}
+
+async function closeMyOpenTables(exceptId) {
+  if (!supabaseClient) return;
+  const me = myId();
+  if (!me) return;
+  const stale = tables.filter((row) => row.id !== exceptId
+    && row.status === 'open'
+    && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me));
+  for (const row of stale) {
+    try {
+      await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ status: 'closed', updated_at: new Date().toISOString() })
+        .eq('id', row.id);
+      row.status = 'closed';
+    } catch {
+      /* пропускаем */
+    }
+  }
 }
 
 function renderTables() {
@@ -639,6 +661,7 @@ async function openFreshTable() {
   tables = [row, ...tables];
   gameRowId = row.id;
   rememberTable(row.id);
+  await closeMyOpenTables(row.id);
   applyRow(row);
   renderTables();
   resetChatForGame();
@@ -1287,6 +1310,7 @@ async function createBotTable(side, level) {
   tables = [row, ...tables];
   gameRowId = row.id;
   rememberTable(row.id);
+  await closeMyOpenTables(row.id);
   applyRow(row);
   renderTables();
   resetChatForGame();
