@@ -1,42 +1,42 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>РЁР°С…РјР°С‚С‹ вЂ” СЃРїРѕСЂС‹ РЅР° РєСЂСѓР¶РєСѓ</title>
+    <title>Шахматы — споры на кружку</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://st.max.ru/js/max-web-app.js"></script>
   </head>
   <body>
     <header class="bar">
-      <div class="title">в™џ РЁР°С…РјР°С‚С‹ <span id="gameId" class="muted"></span></div>
-      <div id="status" class="status">Р—Р°РіСЂСѓР¶Р°СЋСЃСЊвЂ¦</div>
+      <div class="title">♟ Шахматы <span id="gameId" class="muted"></span></div>
+      <div id="status" class="status">Загружаюсь…</div>
     </header>
 
     <main>
-      <div id="board" class="board" aria-label="С€Р°С…РјР°С‚РЅР°СЏ РґРѕСЃРєР°"></div>
+      <div id="board" class="board" aria-label="шахматная доска"></div>
 
       <div class="panel">
         <div id="players" class="players"></div>
         <div id="moves" class="moves"></div>
         <div class="actions">
-          <button id="copyInvite" type="button">РћС‚РїСЂР°РІРёС‚СЊ РІ С‡Р°С‚</button>
-          <button id="flip" type="button">РџРµСЂРµРІРµСЂРЅСѓС‚СЊ</button>
+          <button id="copyInvite" type="button">Отправить в чат</button>
+          <button id="flip" type="button">Перевернуть</button>
         </div>
         <div id="hint" class="hint">
-          РўР°РїРЅРё С„РёРіСѓСЂСѓ, РїРѕС‚РѕРј РєР»РµС‚РєСѓ. РРіСЂР°С‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ РІРґРІРѕС‘Рј РІ СЌС‚РѕРј С‡Р°С‚Рµ.
+          Тапни фигуру, потом клетку. Играть можно только вдвоём в этом чате.
         </div>
       </div>
     </main>
 
     <div id="promo" class="promo hidden">
       <div class="promo-box">
-        <div>РџСЂРµРІСЂР°С‰РµРЅРёРµ РїРµС€РєРё:</div>
+        <div>Превращение пешки:</div>
         <div class="promo-buttons">
-          <button data-piece="q" type="button">в™•</button>
-          <button data-piece="r" type="button">в™–</button>
-          <button data-piece="b" type="button">в™—</button>
-          <button data-piece="n" type="button">в™</button>
+          <button data-piece="q" type="button">♕</button>
+          <button data-piece="r" type="button">♖</button>
+          <button data-piece="b" type="button">♗</button>
+          <button data-piece="n" type="button">♘</button>
         </div>
       </div>
     </div>
@@ -44,4 +44,3 @@
     <script type="module" src="app.js"></script>
   </body>
 </html>
-
