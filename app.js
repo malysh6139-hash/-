@@ -37,7 +37,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '23';
+const APP_VERSION = '24';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -1191,7 +1191,7 @@ const FLOAT_KEY = 'chess-float-pos';
 const BOT_LEVEL_NAMES = { easy: 'Лёгкий', mid: 'Средний', hard: 'Гроссмейстер' };
 
 let floatStep = 'root';
-let floatSide = 'w';
+let floatLevel = 'easy';
 let dragState = null;
 
 function placeFloat(left, top) {
@@ -1303,7 +1303,7 @@ function renderFloatMenu() {
   floatMenuEl.appendChild(title);
 
   if (floatStep === 'root') {
-    floatMenuEl.appendChild(menuItem('♟ Игра', async () => { floatStep = 'game'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('♟ Игра', async () => { floatStep = 'mode'; renderFloatMenu(); }));
     floatMenuEl.appendChild(menuItem('🎲 Предложить спор', async () => {
       closeFloatMenu();
       hintEl.textContent = 'Напиши в чат: спор Локо-Динамо — бот соберёт ставки';
@@ -1316,34 +1316,31 @@ function renderFloatMenu() {
     return;
   }
 
-  if (floatStep === 'game') {
-    floatMenuEl.appendChild(menuItem('♟ Шахматы', async () => { floatStep = 'mode'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'root'; renderFloatMenu(); }));
-    return;
-  }
-
   if (floatStep === 'mode') {
-    floatMenuEl.appendChild(menuItem('👤 С соперником', async () => {
+    floatMenuEl.appendChild(menuItem('👤 Соперник', async () => {
       await openFreshTable();
       closeFloatMenu();
       hintEl.textContent = 'Стол создан. Позови соперника в чате';
     }));
-    floatMenuEl.appendChild(menuItem('🤖 С ботом', async () => { floatStep = 'side'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'game'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('🤖 Бот', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'root'; renderFloatMenu(); }));
     return;
   }
 
-  if (floatStep === 'side') {
-    floatMenuEl.appendChild(menuItem('♔ Я белые', async () => { floatSide = 'w'; floatStep = 'level'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('♚ Я чёрные', async () => { floatSide = 'b'; floatStep = 'level'; renderFloatMenu(); }));
+  if (floatStep === 'level') {
+    floatMenuEl.appendChild(menuItem('Лёгкий', async () => { floatLevel = 'easy'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Средний', async () => { floatLevel = 'mid'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Гроссмейстер', async () => { floatLevel = 'hard'; floatStep = 'side'; renderFloatMenu(); }));
     floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'mode'; renderFloatMenu(); }));
     return;
   }
 
-  floatMenuEl.appendChild(menuItem('Лёгкий', async () => createBotTable(floatSide, 'easy')));
-  floatMenuEl.appendChild(menuItem('Средний', async () => createBotTable(floatSide, 'mid')));
-  floatMenuEl.appendChild(menuItem('Гроссмейстер', async () => createBotTable(floatSide, 'hard')));
-  floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'side'; renderFloatMenu(); }));
+  if (floatStep === 'side') {
+    floatMenuEl.appendChild(menuItem('♔ Я белые', async () => createBotTable('w', floatLevel)));
+    floatMenuEl.appendChild(menuItem('♚ Я чёрные', async () => createBotTable('b', floatLevel)));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    return;
+  }
 }
 
 if (floatBtnEl) {
