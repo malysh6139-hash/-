@@ -25,6 +25,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
+const APP_VERSION = '14';
 const PIECE_STYLE_WHITE = 'color:#ffffff;-webkit-text-stroke:1px #10131a;text-shadow:0 0 2px #000,0 0 2px #000,0 1px 3px rgba(0,0,0,.85)';
 const PIECE_STYLE_BLACK = 'color:#0d1015;-webkit-text-stroke:1px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)';
 
@@ -43,7 +44,10 @@ function looksBrokenHtml() {
 
 function healStaleHtml() {
   try {
-    if (!looksBrokenHtml()) return;
+    const meta = document.querySelector('meta[name="chess-version"]');
+    const pageVersion = meta?.getAttribute('content') ?? '';
+    const stale = looksBrokenHtml() || pageVersion !== APP_VERSION;
+    if (!stale) return;
     if (sessionStorage.getItem('chess-heal') === '1') return;
     sessionStorage.setItem('chess-heal', '1');
     const url = new URL(location.href);
