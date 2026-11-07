@@ -12,7 +12,10 @@
   <body>
     <header class="bar">
       <div class="title">♟ Шахматы <span id="gameId" class="muted"></span></div>
-      <div id="status" class="status">Загружаюсь…</div>
+      <div class="bar-right">
+        <div id="status" class="status">Загружаюсь…</div>
+        <button id="menuBtn" class="dots" type="button" aria-label="правила игры" title="Правила игры">⋮</button>
+      </div>
     </header>
 
     <main>
@@ -47,6 +50,109 @@
           <button data-piece="r" type="button">♖</button>
           <button data-piece="b" type="button">♗</button>
           <button data-piece="n" type="button">♘</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rules" class="rules hidden">
+      <div class="rules-card">
+        <div class="rules-head">
+          <div class="rules-title">Правила шахмат</div>
+          <button id="rulesClose" class="rules-close" type="button" aria-label="закрыть">×</button>
+        </div>
+        <div class="rules-body">
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Цель игры</b>
+              <p>Шахматы играют двое: один белыми, другой чёрными. Ходят по очереди, белые начинают. Задача — поставить мат королю соперника: ему угрожают, а спрятаться некуда. Победа — это мат, а не съеденный король: короля не снимают с доски никогда.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d2":"♙"}' data-marks="d3 d4" data-hits="c3 e3"></div>
+            <div class="rules-text">
+              <b>Пешка</b>
+              <p>Идёт только вперёд на одну клетку. Со стартовой позиции может прыгнуть сразу на две (вперёд, через клетку). Бьёт по-другому — по диагонали на одну клетку вперёд. Назад не ходит и не бьёт. Дошла до последней горизонтали — превращается в любую фигуру, чаще всего в ферзя.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"g1":"♘"}' data-marks="e2 f3 h3"></div>
+            <div class="rules-text">
+              <b>Конь</b>
+              <p>Ходит буквой «Г»: на две клетки в одну сторону и на одну вбок. Через фигуры перепрыгивает — свои и чужие ему не мешают. Бьёт ровно так же, как ходит. С угла поля у коня два хода, из центра — восемь.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"c1":"♗"}' data-marks="b2 a3 d2 e3 f4 g5 h6"></div>
+            <div class="rules-text">
+              <b>Слон</b>
+              <p>Ходит по диагонали на любое расстояние, пока путь свободен. Своя или чужая фигура на пути — дальше не идёт. У каждого слона свой цвет: один всю партию ходит по белым клеткам, другой по чёрным, поэтому «встретиться» они не могут.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d4":"♖"}' data-marks="d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4"></div>
+            <div class="rules-text">
+              <b>Ладья</b>
+              <p>Ходит по прямой — по горизонтали и по вертикали — на любое расстояние до первой фигуры. Через фигуры не перепрыгивает. Ладья сильна на открытых линиях: там ей есть куда разгуляться.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d4":"♕"}' data-marks="d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4 a1 b2 c3 e5 f6 g7 h8 a7 b6 c5 e3 f2 g1"></div>
+            <div class="rules-text">
+              <b>Ферзь</b>
+              <p>Самая сильная фигура: ходит как ладья и как слон сразу — по прямым и по диагоналям на любое расстояние. Через фигуры не перепрыгивает. Ферзя легко подставить под удар, поэтому его берегут до решающего момента.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e1":"♔"}' data-marks="d1 d2 e2 f1 f2"></div>
+            <div class="rules-text">
+              <b>Король</b>
+              <p>Ходит на одну клетку в любую сторону: прямо или по диагонали. Под удар его ставить нельзя — такой ход запрещён. Если королю угрожают, это шах: нужно сразу закрыться, уйти или съесть нападающего. Спастись нельзя — это мат.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e1":"♔","h1":"♖"}' data-marks="f1 g1"></div>
+            <div class="rules-text">
+              <b>Рокировка</b>
+              <p>Один раз за партию король и ладья меняются местами: король прыгает на две клетки в сторону ладьи, ладья встаёт рядом с ним. Условия: король и эта ладья ещё не ходили, между ними пусто, королю не шахуют и через поле под ударом он не проходит.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d5":"♙","e5":"♟"}' data-hits="e6"></div>
+            <div class="rules-text">
+              <b>Взятие на проходе</b>
+              <p>Если пешка соперника проскочила мимо вашей на две клетки, её можно побить «на проходе» — сразу следующим ходом, будто она прошла только одну клетку. Право действует один ход: не использовали — оно сгорело.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e7":"♙"}' data-marks="e8"></div>
+            <div class="rules-text">
+              <b>Превращение</b>
+              <p>Пешка, дошедшая до восьмой горизонтали, превращается в ферзя, ладью, слона или коня — на выбор игрока. В этом приложении окно выбора появляется само.</p>
+            </div>
+          </div>
+
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Шах, мат и ничья</b>
+              <p>Шах — королю угрожает фигура. Мат — шах, от которого нельзя спастись, партия кончена. Пат — ходов нет, но шаха тоже нет: это ничья. Ещё ничья бывает при вечном повторении позиции, по договорённости и когда фигур слишком мало, чтобы поставить мат.</p>
+            </div>
+          </div>
+
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Как играть здесь</b>
+              <p>Один игрок белыми, второй жмёт «Играть за чёрных», остальные смотрят. Тапни свою фигуру — зелёные точки покажут, куда можно пойти, красная рамка — кого можно съесть. Второй тап делает ход, и он сразу появляется у соперника.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
