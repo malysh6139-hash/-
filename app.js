@@ -31,11 +31,12 @@ const seatsTextEl = document.getElementById('seatsText');
 const takeBlackEl = document.getElementById('takeBlack');
 const watchOnlyEl = document.getElementById('watchOnly');
 const menuBtn = document.getElementById('menuBtn');
+const peopleEl = document.getElementById('people');
 const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -160,6 +161,22 @@ function myName() {
   return unsafe?.user?.first_name ?? (new URLSearchParams(location.search).get('name') || 'Игрок');
 }
 
+function myPhoto() {
+  const user = unsafe?.user;
+  return user?.photo_url ?? user?.photo?.url ?? '';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
+}
+
+function avatarHtml(name, photo, extraClass = '') {
+  const cls = `avatar${extraClass ? ` ${extraClass}` : ''}`;
+  if (photo) return `<img class="${cls}" src="${escapeHtml(photo)}" alt="">`;
+  const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+  return `<span class="${cls} avatar-letter">${escapeHtml(letter)}</span>`;
+}
+
 function signedInit() {
   if (initData) return initData;
   const user = { id: myId(), first_name: myName() };
@@ -239,8 +256,8 @@ function rowToGame(row) {
     moves: Array.isArray(row.moves) ? row.moves : [],
     status,
     winner,
-    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые' },
-    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные' },
+    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые', photo: row.white_photo ?? '' },
+    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные', photo: row.black_photo ?? '' },
     role: 'white',
     canMove: true,
   };
@@ -401,11 +418,14 @@ async function cloudStart() {
   if (!row) throw new Error('партия не создалась');
 
   if (!Number(row.white_id ?? 0) && myId()) {
-    const claim = await table
-      .update({ white_id: myId(), white_name: myName(), updated_at: new Date().toISOString() })
-      .eq('id', row.id)
-      .is('white_id', null)
-      .select();
+    const base = { white_id: myId(), white_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let claim = photo
+      ? await table.update({ ...base, white_photo: photo }).eq('id', row.id).is('white_id', null).select()
+      : null;
+    if (!claim || claim.error) {
+      claim = await table.update(base).eq('id', row.id).is('white_id', null).select();
+    }
     if (!claim.error && claim.data?.[0]) row = claim.data[0];
   }
 
@@ -416,7 +436,25 @@ async function cloudStart() {
   applyRow(row);
   renderTables();
   cloudSubscribe();
+  startPeople();
   return true;
+}
+
+let peopleChannel = null;
+
+function startPeople() {
+  if (!supabaseClient || !peopleEl) return;
+  if (peopleChannel) supabaseClient.removeChannel(peopleChannel);
+  peopleChannel = supabaseClient.channel(`people-${roomName()}`, {
+    config: { presence: { key: String(myId() || Math.random().toString(36).slice(2)) } },
+  });
+  peopleChannel.on('presence', { event: 'sync' }, () => {
+    const count = Object.keys(peopleChannel.presenceState()).length;
+    peopleEl.textContent = count > 0 ? `За доской: ${count}` : '';
+  });
+  peopleChannel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') peopleChannel.track({ id: myId() || 0, at: Date.now() });
+  });
 }
 
 function cloudSubscribe() {
@@ -575,10 +613,6 @@ let chatMessages = [];
 let chatChannel = null;
 let chatReady = false;
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
-}
-
 function chatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -600,7 +634,8 @@ function renderChat() {
       const mine = Number(message.user_id ?? 0) === myId() ? ' mine' : '';
       const name = escapeHtml(message.name || 'Гость');
       const text = escapeHtml(message.text);
-      return `<div class="chat-msg${mine}"><span class="chat-name">${name}</span><span class="chat-text">${text}</span><span class="chat-time">${chatTime(message.created_at)}</span></div>`;
+      const avatar = avatarHtml(message.name, message.photo ?? '', 'avatar-sm');
+      return `<div class="chat-msg${mine}">${avatar}<span class="chat-name">${name}</span><span class="chat-text">${text}</span><span class="chat-time">${chatTime(message.created_at)}</span></div>`;
     })
     .join('');
   chatListEl.scrollTop = chatListEl.scrollHeight;
@@ -656,11 +691,14 @@ async function sendChat() {
     if (chatHeadEl) chatHeadEl.textContent = 'Чат ещё не включён — нужна таблица в Supabase';
     return;
   }
-  const res = await supabaseClient
-    .from(CHAT_TABLE)
-    .insert([{ room: roomName(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) }])
-    .select()
-    .single();
+  const base = { room: roomName(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) };
+  const photo = myPhoto();
+  let res = photo
+    ? await supabaseClient.from(CHAT_TABLE).insert([{ ...base, photo }]).select().single()
+    : null;
+  if (!res || res.error) {
+    res = await supabaseClient.from(CHAT_TABLE).insert([base]).select().single();
+  }
   if (res.error) {
     if (chatHeadEl) chatHeadEl.textContent = `Чат: ${res.error.message}`;
     return;
@@ -758,10 +796,12 @@ function render() {
 
   for (const entry of entries) {
     const span = document.createElement('span');
-    const name = entry.player?.name || 'место свободно';
+    const name = entry.player?.id ? entry.player.name : 'свободно';
     const mine = Boolean(entry.player?.id) && entry.player.id === myId();
-    span.textContent = `${entry.side}: ${name}${mine ? ' (вы)' : ''}${entry.turn && game.status === 'open' ? ' •' : ''}`;
-    if (mine) span.style.fontWeight = '700';
+    const label = `${entry.side}: ${escapeHtml(name)}${mine ? ' (вы)' : ''}${entry.turn && game.status === 'open' ? ' •' : ''}`;
+    span.className = `player${mine ? ' mine' : ''}`;
+    const avatar = entry.player?.id ? avatarHtml(name, entry.player?.photo ?? '') : '';
+    span.innerHTML = `${avatar}<span class="player-label">${label}</span>`;
     playersEl.appendChild(span);
   }
 
@@ -937,13 +977,26 @@ takeBlackEl.addEventListener('click', async () => {
   offerSeat = false;
   seatsEl.classList.add('hidden');
   try {
-    const res = await supabaseClient
-      .from(CFG.table || 'games')
-      .update({ black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() })
-      .eq('id', gameRowId)
-      .is('black_id', null)
-      .select()
-      .single();
+    const base = { black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let res = photo
+      ? await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ ...base, black_photo: photo })
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single()
+      : null;
+    if (!res || res.error) {
+      res = await supabaseClient
+        .from(CFG.table || 'games')
+        .update(base)
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single();
+    }
     if (res.error) throw new Error(res.error.message);
     myRole = 'black';
     flipped = true;
