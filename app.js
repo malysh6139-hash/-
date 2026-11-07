@@ -26,6 +26,34 @@ const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
 
+const MOJIBAKE = /Р[СџЎћ]|С[‚ѓ„…†‡€]|РµР|С‚Р|С‡Р|С€Р|РѕР|РїС|РёР/;
+
+function looksBrokenHtml() {
+  const samples = [
+    document.querySelector('.title')?.textContent ?? '',
+    document.getElementById('takeBlack')?.textContent ?? '',
+    document.querySelector('.rules-title')?.textContent ?? '',
+    document.getElementById('chatInput')?.getAttribute('placeholder') ?? '',
+    document.getElementById('chatHead')?.textContent ?? '',
+  ];
+  return samples.some((sample) => MOJIBAKE.test(sample));
+}
+
+function healStaleHtml() {
+  try {
+    if (!looksBrokenHtml()) return;
+    if (sessionStorage.getItem('chess-heal') === '1') return;
+    sessionStorage.setItem('chess-heal', '1');
+    const url = new URL(location.href);
+    url.searchParams.set('fresh', String(Date.now()));
+    location.replace(url.toString());
+  } catch {
+    /* не смогли — работаем как есть */
+  }
+}
+
+healStaleHtml();
+
 function paintDiagrams() {
   for (const el of document.querySelectorAll('[data-diagram]')) {
     if (el.dataset.painted) continue;
