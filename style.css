@@ -342,6 +342,36 @@ main {
   color: #cfd8e3;
 }
 
+.role {
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.role.hidden {
+  display: none;
+}
+
+.role.white {
+  background: #eef1f5;
+  color: #1b1d21;
+}
+
+.role.black {
+  background: #0f1217;
+  color: #eef1f5;
+  border: 1px solid #46505f;
+}
+
+.role.spectator {
+  background: #23282f;
+  color: #cfd8e3;
+  border: 1px solid #2f3742;
+  font-weight: 600;
+}
+
 .moves {
   font-size: 13px;
   color: #93a3b8;
