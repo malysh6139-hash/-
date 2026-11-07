@@ -652,3 +652,60 @@ button:active {
   height: 56px;
   padding: 0;
 }
+
+.float-btn {
+  position: fixed;
+  z-index: 40;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 14px;
+  background: #2f7d4f;
+  color: #eafff2;
+  border: 1px solid #48a060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.float-btn:active {
+  cursor: grabbing;
+}
+
+.float-menu {
+  position: fixed;
+  z-index: 41;
+  min-width: 190px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #20262e;
+  border: 1px solid #3a4450;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.float-menu-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8fa0b5;
+  padding: 6px 10px 8px;
+}
+
+.float-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #e7edf5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.float-menu button:hover {
+  background: #2b333d;
+}
