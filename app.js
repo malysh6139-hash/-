@@ -54,6 +54,48 @@ function signedInit() {
   return `auth_date=${Math.floor(Date.now() / 1000)}&user=${encodeURIComponent(JSON.stringify(user))}&chat=${encodeURIComponent(JSON.stringify(chat))}`;
 }
 
+const SAVE_PREFIX = 'chess-max-save-v1';
+
+function saveSlot() {
+  return `${SAVE_PREFIX}:${myChat() || 'local'}:${myId() || 0}`;
+}
+
+function saveGame() {
+  if (!game || !game.fen) return;
+  try {
+    localStorage.setItem(saveSlot(), JSON.stringify({
+      game,
+      flipped,
+      mode: localMode ? 'local' : 'server',
+      savedAt: Date.now(),
+    }));
+  } catch {
+    /* приватный режим или переполнение — играем без сохранения */
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(saveSlot());
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved?.game?.fen) return null;
+    new Board(saved.game.fen);
+    if (!Array.isArray(saved.game.moves)) saved.game.moves = [];
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function clearGame() {
+  try {
+    localStorage.removeItem(saveSlot());
+  } catch {
+    /* нечего чистить */
+  }
+}
+
 function cellIndex(file, rankFromTop) {
   const rank = flipped ? rankFromTop : 7 - rankFromTop;
   const f = flipped ? 7 - file : file;
@@ -127,6 +169,8 @@ function render() {
     statusEl.textContent = winner ? `Партия окончена. Победили: ${winner}` : 'Партия окончена. Ничья';
   } else if (!game.black) {
     statusEl.textContent = 'Ждём второго игрока';
+  } else if (localMode) {
+    statusEl.textContent = board.turn === 'w' ? 'Ход белых' : 'Ход чёрных';
   } else {
     statusEl.textContent = game.canMove ? 'Твой ход' : `Ход ${board.turn === 'w' ? 'белых' : 'чёрных'}`;
   }
@@ -198,6 +242,7 @@ async function sendMove(from, to, promo) {
     selected = null;
     legal = [];
     render();
+    saveGame();
     return;
   }
   busy = true;
@@ -211,6 +256,7 @@ async function sendMove(from, to, promo) {
     selected = null;
     legal = [];
     render();
+    saveGame();
   } catch (error) {
     statusEl.textContent = 'Нет связи с сервером';
   } finally {
@@ -230,6 +276,28 @@ promoEl.addEventListener('click', (event) => {
 document.getElementById('flip').addEventListener('click', () => {
   flipped = !flipped;
   render();
+  saveGame();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  clearGame();
+  selected = null;
+  legal = [];
+  pendingPromotion = null;
+  promoEl.classList.add('hidden');
+  flipped = false;
+  if (localMode || !myChat() || !myId()) {
+    localMode = true;
+    startLocal();
+    return;
+  }
+  game = null;
+  enter();
+});
+
+window.addEventListener('pagehide', saveGame);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveGame();
 });
 
 document.getElementById('copyInvite').addEventListener('click', async () => {
@@ -256,6 +324,7 @@ async function enter() {
     game = result.game;
     flipped = game.role === 'black';
     render();
+    saveGame();
     poll();
   } catch {
     startLocal();
@@ -268,7 +337,10 @@ async function poll() {
     if (result.game && result.game.id === game?.id) {
       const changed = result.game.moves.length !== game.moves.length || result.game.status !== game.status;
       game = result.game;
-      if (changed) render();
+      if (changed) {
+        render();
+        saveGame();
+      }
     }
   } catch {
     /* тихо: попробуем в следующий раз */
@@ -282,8 +354,20 @@ enter().catch((error) => {
 
 function startLocal() {
   localMode = true;
-  board = new Board();
-  game = { id: 0, fen: board.fen(), moves: [], status: 'open', winner: null, white: { id: myId(), name: 'Первый' }, black: { name: 'второй игрок' }, role: 'white', canMove: true };
+  const saved = loadGame();
+  if (saved?.game) {
+    game = { ...saved.game, role: 'white', canMove: saved.game.status !== 'done' };
+    flipped = Boolean(saved.flipped);
+  } else {
+    board = new Board();
+    game = { id: 0, fen: board.fen(), moves: [], status: 'open', winner: null, white: { id: myId(), name: 'Первый' }, black: { name: 'второй игрок' }, role: 'white', canMove: true };
+    flipped = false;
+  }
+  selected = null;
+  legal = [];
   render();
-  hintEl.textContent = 'Без сервера: ходят оба по очереди на этом экране. Ходы в чат не уходят.';
+  saveGame();
+  hintEl.textContent = saved?.game
+    ? 'Партия сохранена на этом телефоне: продолжаем с того же хода.'
+    : 'Без сервера: ходят оба по очереди на этом экране. Ходы в чат не уходят.';
 }
