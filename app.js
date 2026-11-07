@@ -8,6 +8,7 @@ function glyphFor(piece) {
 }
 
 const boardEl = document.getElementById('board');
+const tablesEl = document.getElementById('tables');
 const statusEl = document.getElementById('status');
 const gameIdEl = document.getElementById('gameId');
 const playersEl = document.getElementById('players');
@@ -167,6 +168,7 @@ let supabaseClient = null;
 let gameRowId = null;
 let cloudMode = false;
 let cloudChannel = null;
+let tables = [];
 
 function cloudReady() {
   return Boolean(CFG.supabaseUrl && CFG.supabaseKey && window.supabase);
@@ -177,12 +179,20 @@ function roomName() {
 }
 
 function rowToGame(row) {
+  const raw = row.status ?? 'open';
+  const done = raw === 'done' || raw === 'white_won' || raw === 'black_won';
+  const status = raw === 'closed' ? 'closed' : done ? 'done' : 'open';
+  const winner = raw === 'white_won' || (raw === 'done' && row.winner === 'w')
+    ? 'w'
+    : raw === 'black_won' || (raw === 'done' && row.winner === 'b')
+      ? 'b'
+      : null;
   return {
     id: 0,
     fen: row.board_state,
     moves: Array.isArray(row.moves) ? row.moves : [],
-    status: row.status === 'done' ? 'done' : 'open',
-    winner: null,
+    status,
+    winner,
     white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые' },
     black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные' },
     role: 'white',
@@ -227,28 +237,117 @@ function applyRow(row) {
   saveGame();
 }
 
+function tableSlot() {
+  return `${SAVE_PREFIX}:table:${myChat() || 'local'}:${myId() || 0}`;
+}
+
+function savedTableId() {
+  try {
+    return localStorage.getItem(tableSlot());
+  } catch {
+    return null;
+  }
+}
+
+function rememberTable(id) {
+  try {
+    if (id) localStorage.setItem(tableSlot(), String(id));
+  } catch {
+    /* без сохранения выбора */
+  }
+}
+
+async function loadTables() {
+  const name = CFG.table || 'games';
+  const byNo = await supabaseClient
+    .from(name)
+    .select('*')
+    .eq('room', roomName())
+    .order('game_no', { ascending: false });
+  if (!byNo.error) return byNo.data ?? [];
+
+  const byTime = await supabaseClient
+    .from(name)
+    .select('*')
+    .eq('room', roomName())
+    .order('updated_at', { ascending: false });
+  if (byTime.error) throw new Error(byNo.error.message);
+  return byTime.data ?? [];
+}
+
+function pickTable(rows) {
+  if (!rows?.length) return null;
+  const saved = savedTableId();
+  const bySaved = saved ? rows.find((row) => row.id === saved) : null;
+  if (bySaved) return bySaved;
+  const me = myId();
+  const mine = me
+    ? rows.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me)
+    : null;
+  if (mine) return mine;
+  return rows.find((row) => row.status === 'open') ?? rows.find((row) => row.status !== 'done' && row.status !== 'closed') ?? rows[0];
+}
+
+function renderTables() {
+  if (!tablesEl) return;
+  if (tables.length < 2) {
+    tablesEl.classList.add('hidden');
+    tablesEl.innerHTML = '';
+    return;
+  }
+  tablesEl.classList.remove('hidden');
+  const me = myId();
+  tablesEl.innerHTML = tables
+    .map((row) => {
+      const active = row.id === gameRowId ? ' active' : '';
+      const mine = me && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me) ? ' •' : '';
+      const done = row.status === 'done' ? ' ✓' : row.status === 'closed' ? ' ✕' : '';
+      return `<button type="button" class="table-chip${active}" data-table="${row.id}">Стол #${row.game_no ?? 1}${mine}${done}</button>`;
+    })
+    .join('');
+}
+
+async function switchTable(id) {
+  if (!id || id === gameRowId) return;
+  const row = tables.find((item) => item.id === id);
+  if (!row) return;
+  gameRowId = id;
+  rememberTable(id);
+  selected = null;
+  legal = [];
+  applyRow(row);
+  renderTables();
+}
+
+if (tablesEl) {
+  tablesEl.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-table]');
+    if (!button) return;
+    switchTable(button.dataset.table).catch(() => {});
+  });
+}
+
 async function cloudStart() {
   if (!cloudReady()) return false;
   supabaseClient = supabaseClient ?? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
   const table = supabaseClient.from(CFG.table || 'games');
-  const room = roomName();
 
-  const found = await table.select('*').eq('room', room).limit(1);
-  if (found.error) throw new Error(found.error.message);
-  let row = found.data?.[0];
+  tables = await loadTables();
+  let row = pickTable(tables);
 
   if (!row) {
     const fresh = new Board();
-    const created = await table
-      .insert([{ room, board_state: fresh.fen(), is_white_turn: true, moves: [] }])
-      .select()
-      .single();
+    const base = { room: roomName(), board_state: fresh.fen(), is_white_turn: true, moves: [] };
+    let created = await table.insert([{ ...base, game_no: 1 }]).select().single();
     if (created.error) {
-      const retry = await table.select('*').eq('room', room).limit(1);
-      if (retry.error) throw new Error(created.error.message);
-      row = retry.data?.[0] ?? null;
+      created = await table.insert([base]).select().single();
+    }
+    if (created.error) {
+      tables = await loadTables();
+      row = pickTable(tables);
     } else {
       row = created.data;
+      tables = [row, ...tables];
     }
   }
   if (!row) throw new Error('партия не создалась');
@@ -263,23 +362,32 @@ async function cloudStart() {
   }
 
   gameRowId = row?.id ?? null;
+  if (gameRowId) rememberTable(gameRowId);
   cloudMode = true;
   localMode = true;
   applyRow(row);
+  renderTables();
   cloudSubscribe();
   return true;
 }
 
 function cloudSubscribe() {
-  if (!supabaseClient || !gameRowId) return;
+  if (!supabaseClient) return;
   if (cloudChannel) supabaseClient.removeChannel(cloudChannel);
   cloudChannel = supabaseClient
     .channel(`chess-${roomName()}`)
     .on(
       'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: CFG.table || 'games', filter: `room=eq.${roomName()}` },
+      { event: '*', schema: 'public', table: CFG.table || 'games', filter: `room=eq.${roomName()}` },
       (payload) => {
-        if (payload?.new?.id === gameRowId) applyRow(payload.new);
+        const row = payload?.new;
+        if (!row?.id) return;
+        const index = tables.findIndex((item) => item.id === row.id);
+        if (index >= 0) tables[index] = row;
+        else tables.unshift(row);
+        tables.sort((a, b) => Number(b.game_no ?? 0) - Number(a.game_no ?? 0));
+        if (row.id === gameRowId) applyRow(row);
+        renderTables();
       },
     )
     .subscribe();
@@ -326,10 +434,55 @@ async function cloudMove(from, to, promo) {
 async function cloudReset() {
   try {
     const fresh = new Board();
-    await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [] });
+    await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [], status: 'open' });
   } catch (error) {
     statusEl.textContent = `Облако недоступно: ${error.message}`;
   }
+}
+
+async function cloudResign() {
+  if (!cloudMode || !gameRowId) {
+    statusEl.textContent = 'Сдаться можно в партии из чата';
+    return;
+  }
+  if (game?.status !== 'open') {
+    statusEl.textContent = 'Партия уже закончена';
+    return;
+  }
+  if (myRole !== 'white' && myRole !== 'black') {
+    statusEl.textContent = 'Ты зритель — сдаваться некому';
+    return;
+  }
+  try {
+    await cloudWrite({ status: myRole === 'white' ? 'black_won' : 'white_won' });
+  } catch (error) {
+    statusEl.textContent = `Не получилось: ${error.message}`;
+  }
+}
+
+async function cloudCloseTable() {
+  if (!cloudMode || !gameRowId) {
+    statusEl.textContent = 'Закрывать можно партию из чата';
+    return;
+  }
+  const seated = myRole === 'white' || myRole === 'black';
+  if (!seated && Number(game?.white?.id ?? 0)) {
+    statusEl.textContent = 'Закрыть стол может только игрок этого стола';
+    return;
+  }
+  try {
+    await cloudWrite({ status: 'closed' });
+  } catch (error) {
+    statusEl.textContent = `Не получилось: ${error.message}`;
+    return;
+  }
+  const next = tables.find((row) => row.id !== gameRowId && row.status === 'open');
+  if (next) {
+    gameRowId = next.id;
+    rememberTable(next.id);
+    applyRow(next);
+  }
+  renderTables();
 }
 
 const CHAT_TABLE = 'chess_messages';
@@ -521,7 +674,9 @@ function render() {
   if (offerSeat) seatsTextEl.textContent = 'Чёрные свободны: играть или просто смотреть?';
 
   const turnText = board.turn === 'w' ? 'белых' : 'чёрных';
-  if (game.status === 'done') {
+  if (game.status === 'closed') {
+    statusEl.textContent = 'Стол закрыт';
+  } else if (game.status === 'done') {
     const winner = game.winner === 'w' ? game.white?.name : game.winner === 'b' ? game.black?.name : null;
     statusEl.textContent = winner ? `Партия окончена. Победили: ${winner}` : 'Партия окончена. Ничья';
   } else if (!game.black?.id) {
@@ -664,6 +819,14 @@ document.getElementById('reset').addEventListener('click', () => {
   }
   game = null;
   enter();
+});
+
+document.getElementById('resign').addEventListener('click', () => {
+  cloudResign().catch(() => {});
+});
+
+document.getElementById('closeTable').addEventListener('click', () => {
+  cloudCloseTable().catch(() => {});
 });
 
 watchOnlyEl.addEventListener('click', () => {
