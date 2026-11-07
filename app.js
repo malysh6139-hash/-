@@ -12,6 +12,13 @@ const playersEl = document.getElementById('players');
 const movesEl = document.getElementById('moves');
 const hintEl = document.getElementById('hint');
 const promoEl = document.getElementById('promo');
+const seatsEl = document.getElementById('seats');
+const seatsTextEl = document.getElementById('seatsText');
+const takeBlackEl = document.getElementById('takeBlack');
+const watchOnlyEl = document.getElementById('watchOnly');
+
+let myRole = 'free';
+let offerSeat = false;
 
 const webApp = window.WebApp;
 const initData = webApp?.initData ?? '';
@@ -115,13 +122,30 @@ function rowToGame(row) {
     id: 0,
     fen: row.board_state,
     moves: Array.isArray(row.moves) ? row.moves : [],
-    status: 'open',
+    status: row.status === 'done' ? 'done' : 'open',
     winner: null,
-    white: { name: 'Белые' },
-    black: { name: 'Чёрные' },
+    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые' },
+    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные' },
     role: 'white',
     canMove: true,
   };
+}
+
+function roleOf(row) {
+  const me = myId();
+  if (!me) return 'free';
+  const whiteId = Number(row.white_id ?? 0);
+  const blackId = Number(row.black_id ?? 0);
+  if (whiteId && me === whiteId) return 'white';
+  if (blackId && me === blackId) return 'black';
+  return 'spectator';
+}
+
+function canMoveNow() {
+  if (!game || game.status !== 'open' || busy) return false;
+  if (myRole === 'free') return true;
+  if (myRole === 'spectator') return false;
+  return (myRole === 'white') === (board.turn === 'w');
 }
 
 function applyRow(row) {
@@ -131,6 +155,8 @@ function applyRow(row) {
   } catch {
     return;
   }
+  myRole = roleOf(row);
+  offerSeat = myRole === 'spectator' && !Number(row.black_id ?? 0);
   game = rowToGame(row);
   render();
   saveGame();
@@ -198,6 +224,10 @@ async function cloudWrite(fields) {
 
 async function cloudMove(from, to, promo) {
   if (!game || busy) return;
+  if (!canMoveNow()) {
+    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
+    return;
+  }
   busy = true;
   try {
     const position = new Board(game.fen);
@@ -288,34 +318,44 @@ function render() {
 
   for (const entry of entries) {
     const span = document.createElement('span');
-    const name = entry.player ? entry.player.name : 'ждём соперника';
+    const name = entry.player?.name || 'место свободно';
     span.textContent = `${entry.side}: ${name}${entry.turn && game.status === 'open' ? ' •' : ''}`;
-    if (entry.player?.id === myId()) span.style.fontWeight = '700';
+    if (entry.player?.id && entry.player.id === myId()) span.style.fontWeight = '700';
     playersEl.appendChild(span);
   }
 
   movesEl.textContent = game.moves.length ? game.moves.slice(-10).join('  ') : 'ходов пока нет';
 
+  seatsEl.classList.toggle('hidden', !offerSeat);
+  if (offerSeat) seatsTextEl.textContent = 'Чёрные свободны: играть или просто смотреть?';
+
+  const turnText = board.turn === 'w' ? 'белых' : 'чёрных';
   if (game.status === 'done') {
     const winner = game.winner === 'w' ? game.white?.name : game.winner === 'b' ? game.black?.name : null;
     statusEl.textContent = winner ? `Партия окончена. Победили: ${winner}` : 'Партия окончена. Ничья';
-  } else if (!game.black) {
-    statusEl.textContent = 'Ждём второго игрока';
-  } else if (localMode) {
-    statusEl.textContent = board.turn === 'w' ? 'Ход белых' : 'Ход чёрных';
+  } else if (!game.black?.id) {
+    statusEl.textContent = myRole === 'white' ? 'Ждём соперника' : `Ход ${turnText}`;
+  } else if (myRole === 'spectator') {
+    statusEl.textContent = `Зритель. Ход ${turnText}`;
+  } else if (myRole === 'white' || myRole === 'black') {
+    statusEl.textContent = canMoveNow() ? 'Твой ход' : `Ход ${turnText}`;
   } else {
-    statusEl.textContent = game.canMove ? 'Твой ход' : `Ход ${board.turn === 'w' ? 'белых' : 'чёрных'}`;
+    statusEl.textContent = `Ход ${turnText}`;
   }
 
-  hintEl.textContent = game.role === 'spectator'
-    ? 'Ты в этой партии зритель: играют двое из этого чата.'
-    : 'Тапни фигуру, потом клетку. Ход отправится сразу.';
+  if (myRole === 'spectator') {
+    hintEl.textContent = 'Ты зритель: играют двое. Их ходы появляются сами.';
+  } else if (myRole === 'white' || myRole === 'black') {
+    hintEl.textContent = `Ты играешь ${myRole === 'white' ? 'белыми' : 'чёрными'}. Тапни фигуру, потом клетку.`;
+  } else {
+    hintEl.textContent = 'Тапни фигуру, потом клетку. Ход отправится сразу.';
+  }
 }
 
 function onCell(index) {
   if (!game || game.status !== 'open' || busy) return;
-  if (!game.canMove) {
-    statusEl.textContent = 'Сейчас не твой ход';
+  if (!canMoveNow()) {
+    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
     return;
   }
 
@@ -433,6 +473,35 @@ document.getElementById('reset').addEventListener('click', () => {
   }
   game = null;
   enter();
+});
+
+watchOnlyEl.addEventListener('click', () => {
+  offerSeat = false;
+  seatsEl.classList.add('hidden');
+  render();
+});
+
+takeBlackEl.addEventListener('click', async () => {
+  if (!cloudMode || !supabaseClient || !gameRowId) return;
+  offerSeat = false;
+  seatsEl.classList.add('hidden');
+  try {
+    const res = await supabaseClient
+      .from(CFG.table || 'games')
+      .update({ black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() })
+      .eq('id', gameRowId)
+      .is('black_id', null)
+      .select()
+      .single();
+    if (res.error) throw new Error(res.error.message);
+    myRole = 'black';
+    flipped = true;
+    applyRow(res.data);
+    saveGame();
+  } catch {
+    statusEl.textContent = 'Место за чёрных уже заняли — ты зритель';
+    render();
+  }
 });
 
 window.addEventListener('pagehide', saveGame);
