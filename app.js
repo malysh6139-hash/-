@@ -236,7 +236,7 @@ async function sendMove(from, to, promo) {
     if (move) {
       const next = board.apply(move);
       game.fen = next.fen();
-      game.moves.push(from + '-' + to);
+      game.moves.push(`${squareName(from)}-${squareName(to)}`);
       board = next;
     }
     selected = null;
