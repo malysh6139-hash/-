@@ -20,6 +20,7 @@ function pieceImage(piece) {
 const boardEl = document.getElementById('board');
 const tablesEl = document.getElementById('tables');
 const roleEl = document.getElementById('role');
+const resultEl = document.getElementById('result');
 const statusEl = document.getElementById('status');
 const gameIdEl = document.getElementById('gameId');
 const playersEl = document.getElementById('players');
@@ -36,7 +37,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '21';
+const APP_VERSION = '22';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -171,11 +172,19 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
 }
 
+const AVATAR_COLORS = ['#3b6ea5', '#8a5a2b', '#4a7c59', '#7a4f8a', '#a5503c', '#3f7d8c', '#8a7a2b', '#5a5a8a'];
+
+function avatarColor(name) {
+  let hash = 0;
+  for (const ch of String(name || '?')) hash = (hash * 31 + ch.codePointAt(0)) % 9973;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
 function avatarHtml(name, photo, extraClass = '') {
   const cls = `avatar${extraClass ? ` ${extraClass}` : ''}`;
   if (photo) return `<img class="${cls}" src="${escapeHtml(photo)}" alt="">`;
   const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?';
-  return `<span class="${cls} avatar-letter">${escapeHtml(letter)}</span>`;
+  return `<span class="${cls} avatar-letter" style="background:${avatarColor(name)}">${escapeHtml(letter)}</span>`;
 }
 
 function signedInit() {
@@ -298,6 +307,12 @@ function applyRow(row) {
   offerSeat = role === 'spectator' && !Number(row.black_id ?? 0);
   game = rowToGame(row);
   render();
+  setChatLocked(game.status !== 'open');
+  if ((game.status === 'done' || game.status === 'closed') && clearedForGame !== gameRowId) {
+    clearedForGame = gameRowId;
+    clearChat();
+  }
+  if (game.status === 'open' && clearedForGame === gameRowId) clearedForGame = null;
   saveGame();
 }
 
@@ -383,6 +398,7 @@ async function switchTable(id) {
   legal = [];
   applyRow(row);
   renderTables();
+  resetChatForGame();
 }
 
 if (tablesEl) {
@@ -544,6 +560,7 @@ async function cloudReset() {
   try {
     const fresh = new Board();
     await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [], status: 'open' });
+    await clearChat();
   } catch (error) {
     statusEl.textContent = `Облако недоступно: ${error.message}`;
   }
@@ -624,6 +641,7 @@ async function openFreshTable() {
   rememberTable(row.id);
   applyRow(row);
   renderTables();
+  resetChatForGame();
 }
 
 const CHAT_TABLE = 'chess_messages';
@@ -631,10 +649,39 @@ const chatHeadEl = document.getElementById('chatHead');
 const chatListEl = document.getElementById('chatList');
 const chatFormEl = document.getElementById('chatForm');
 const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
+
+let clearedForGame = null;
+
+function setChatLocked(locked) {
+  if (chatInputEl) {
+    chatInputEl.disabled = locked;
+    chatInputEl.placeholder = locked ? 'Партия окончена — чат закрыт' : 'Написать всем за доской…';
+  }
+  if (chatSendEl) chatSendEl.disabled = locked;
+}
 
 let chatMessages = [];
 let chatChannel = null;
 let chatReady = false;
+
+function chatRoom() {
+  return `${roomName()}#${gameRowId || 'lobby'}`;
+}
+
+function resetChatForGame() {
+  chatMessages = [];
+  renderChat();
+  if (chatReady) loadChat();
+}
+
+async function clearChat() {
+  const room = chatRoom();
+  chatMessages = [];
+  renderChat();
+  if (!supabaseClient) return;
+  await supabaseClient.from(CHAT_TABLE).delete().eq('room', room);
+}
 
 function chatTime(value) {
   const date = new Date(value);
@@ -675,10 +722,10 @@ function addChatMessage(message) {
 function subscribeChat() {
   if (!supabaseClient || chatChannel) return;
   chatChannel = supabaseClient
-    .channel(`chat-${roomName()}`)
+    .channel(`chat-${chatRoom()}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: CHAT_TABLE, filter: `room=eq.${roomName()}` },
+      { event: 'INSERT', schema: 'public', table: CHAT_TABLE, filter: `room=eq.${chatRoom()}` },
       (payload) => addChatMessage(payload?.new),
     )
     .subscribe();
@@ -690,7 +737,7 @@ async function loadChat() {
   const res = await supabaseClient
     .from(CHAT_TABLE)
     .select('*')
-    .eq('room', roomName())
+    .eq('room', chatRoom())
     .order('created_at', { ascending: false })
     .limit(50);
   if (res.error) {
@@ -714,7 +761,7 @@ async function sendChat() {
     if (chatHeadEl) chatHeadEl.textContent = 'Чат ещё не включён — нужна таблица в Supabase';
     return;
   }
-  const base = { room: roomName(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) };
+  const base = { room: chatRoom(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) };
   const photo = myPhoto();
   let res = photo
     ? await supabaseClient.from(CHAT_TABLE).insert([{ ...base, photo }]).select().single()
@@ -795,8 +842,7 @@ function render() {
   gameIdEl.textContent = game.id ? `#${game.id}` : '';
 
   if (roleEl) {
-    if (myRole === 'white') {
-      roleEl.className = 'role white';
+    if (myRole === 'white') {      roleEl.className = 'role white';
       roleEl.textContent = 'Ты играешь белыми';
     } else if (myRole === 'black') {
       roleEl.className = 'role black';
@@ -834,6 +880,25 @@ function render() {
   if (offerSeat) seatsTextEl.textContent = 'Чёрные свободны: играть или просто смотреть?';
 
   const turnText = board.turn === 'w' ? 'белых' : 'чёрных';
+
+  if (resultEl) {
+    const won = game.status === 'done' ? game.winner : null;
+    const draw = game.status === 'done' && !won;
+    if (won) {
+      const sideName = won === 'w' ? 'Белые' : 'Чёрные';
+      const iAmWinner = myRole === (won === 'w' ? 'white' : 'black');
+      const iAmLoser = (myRole === 'white' || myRole === 'black') && !iAmWinner;
+      const text = iAmWinner ? 'Вы выиграли' : iAmLoser ? 'Вы проиграли' : `${sideName} победили`;
+      resultEl.className = `result ${iAmWinner ? 'win' : iAmLoser ? 'lose' : 'draw'}`;
+      resultEl.textContent = text;
+    } else if (draw) {
+      resultEl.className = 'result draw';
+      resultEl.textContent = 'Ничья';
+    } else {
+      resultEl.className = 'result hidden';
+      resultEl.textContent = '';
+    }
+  }
   if (game.status === 'closed') {
     statusEl.textContent = 'Стол закрыт';
   } else if (game.status === 'done') {
