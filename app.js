@@ -3,10 +3,10 @@ import { Board, parseMove, squareName } from './chess-engine.js';
 import { PIECE_IMAGES } from './pieces.js';
 
 const GLYPH_LETTER = {
-  '♟': 'p', '♜': 'r', '♞': 'n', '♝': 'b', '♛': 'q', '♚': 'k',
-  '♙': 'p', '♖': 'r', '♘': 'n', '♗': 'b', '♕': 'q', '♔': 'k',
+  'в™џ': 'p', 'в™њ': 'r', 'в™ћ': 'n', 'в™ќ': 'b', 'в™›': 'q', 'в™љ': 'k',
+  'в™™': 'p', 'в™–': 'r', 'в™': 'n', 'в™—': 'b', 'в™•': 'q', 'в™”': 'k',
 };
-const GLYPH_IS_WHITE = { '♙': true, '♖': true, '♘': true, '♗': true, '♕': true, '♔': true };
+const GLYPH_IS_WHITE = { 'в™™': true, 'в™–': true, 'в™': true, 'в™—': true, 'в™•': true, 'в™”': true };
 
 function pieceImage(piece) {
   const white = piece === String(piece).toUpperCase();
@@ -37,12 +37,12 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '26';
+const APP_VERSION = '27';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
 
-const MOJIBAKE = /Р[СџЎћ]|С[‚ѓ„…†‡€]|РµР|С‚Р|С‡Р|С€Р|РѕР|РїС|РёР/;
+const MOJIBAKE = /Р [РЎСџРЋС›]|РЎ[вЂљС“вЂћвЂ¦вЂ вЂЎв‚¬]|Р ВµР |РЎвЂљР |РЎвЂЎР |РЎв‚¬Р |Р С•Р |Р С—РЎ|Р С‘Р /;
 
 function looksBrokenHtml() {
   const samples = [
@@ -67,7 +67,7 @@ function healStaleHtml() {
     url.searchParams.set('fresh', String(Date.now()));
     location.replace(url.toString());
   } catch {
-    /* не смогли — работаем как есть */
+    /* РЅРµ СЃРјРѕРіР»Рё вЂ” СЂР°Р±РѕС‚Р°РµРј РєР°Рє РµСЃС‚СЊ */
   }
 }
 
@@ -118,7 +118,48 @@ function closeRules() {
   rulesEl.classList.add('hidden');
 }
 
-menuBtn.addEventListener('click', openRules);
+const mainMenuEl = document.getElementById('mainMenu');
+const mmHintEl = document.getElementById('mmHint');
+
+function openMainMenu() {
+  if (!mainMenuEl) return;
+  mainMenuEl.classList.remove('hidden');
+}
+
+function closeMainMenu() {
+  if (!mainMenuEl) return;
+  mainMenuEl.classList.add('hidden');
+}
+
+function showMenuHint(text) {
+  if (!mmHintEl) return;
+  mmHintEl.textContent = text;
+  mmHintEl.classList.remove('hidden');
+}
+
+menuBtn.addEventListener('click', () => {
+  if (mainMenuEl && !mainMenuEl.classList.contains('hidden')) closeMainMenu();
+  else openMainMenu();
+});
+
+document.getElementById('mmChess')?.addEventListener('click', () => {
+  closeMainMenu();
+  hintEl.textContent = 'РРіСЂР°Р№: Р¶РјРё РЅР° СЃРІРѕСЋ С„РёРіСѓСЂСѓ, РїРѕС‚РѕРј РЅР° РєР»РµС‚РєСѓ. РЎРѕРїРµСЂРЅРёРєР° Р·РѕРІРё РєРЅРѕРїРєРѕР№ В«РћС‚РїСЂР°РІРёС‚СЊ РІ С‡Р°С‚В».';
+});
+
+document.getElementById('mmBet')?.addEventListener('click', () => {
+  showMenuHint('РЎРїРѕСЂ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ РІ С‡Р°С‚Рµ: РЅР°РїРёС€Рё В«СЃРїРѕСЂ Р›РѕРєРѕ-Р”РёРЅР°РјРѕВ» РёР»Рё В«СЃРїРѕСЂ РЎРµСЂС‘РіР° РїСЂРѕС‚РёРІ Р›С‘С…РёВ» вЂ” Р±РѕС‚ РїСЂРёС€Р»С‘С‚ РєР°СЂС‚РѕС‡РєСѓ СЃРѕ СЃС‚Р°РІРєР°РјРё.');
+});
+
+document.getElementById('mmDebts')?.addEventListener('click', () => {
+  showMenuHint('Р”РѕР»РіРё: РЅР°РїРёС€Рё РІ С‡Р°С‚ В«РґРѕР»РіРёВ» вЂ” Р±РѕС‚ РѕС‚РІРµС‚РёС‚, РєС‚Рѕ РєРѕРјСѓ РїСЂРѕСЃС‚Р°РІР»СЏРµС‚СЃСЏ.');
+});
+
+document.getElementById('mmRules')?.addEventListener('click', () => {
+  closeMainMenu();
+  openRules();
+});
+
 rulesClose.addEventListener('click', closeRules);
 rulesEl.addEventListener('click', (event) => {
   if (event.target === rulesEl) closeRules();
@@ -159,7 +200,7 @@ async function api(path, payload) {
 }
 
 function myName() {
-  return unsafe?.user?.first_name ?? (new URLSearchParams(location.search).get('name') || 'Игрок');
+  return unsafe?.user?.first_name ?? (new URLSearchParams(location.search).get('name') || 'РРіСЂРѕРє');
 }
 
 function myPhoto() {
@@ -210,7 +251,7 @@ function saveGame() {
       savedAt: Date.now(),
     }));
   } catch {
-    /* приватный режим или переполнение — играем без сохранения */
+    /* РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј РёР»Рё РїРµСЂРµРїРѕР»РЅРµРЅРёРµ вЂ” РёРіСЂР°РµРј Р±РµР· СЃРѕС…СЂР°РЅРµРЅРёСЏ */
   }
 }
 
@@ -232,7 +273,7 @@ function clearGame() {
   try {
     localStorage.removeItem(saveSlot());
   } catch {
-    /* нечего чистить */
+    /* РЅРµС‡РµРіРѕ С‡РёСЃС‚РёС‚СЊ */
   }
 }
 
@@ -266,8 +307,8 @@ function rowToGame(row) {
     moves: Array.isArray(row.moves) ? row.moves : [],
     status,
     winner,
-    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые', photo: row.white_photo ?? '' },
-    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные', photo: row.black_photo ?? '' },
+    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Р‘РµР»С‹Рµ', photo: row.white_photo ?? '' },
+    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Р§С‘СЂРЅС‹Рµ', photo: row.black_photo ?? '' },
     role: 'white',
     canMove: true,
   };
@@ -332,7 +373,7 @@ function rememberTable(id) {
   try {
     if (id) localStorage.setItem(tableSlot(), String(id));
   } catch {
-    /* без сохранения выбора */
+    /* Р±РµР· СЃРѕС…СЂР°РЅРµРЅРёСЏ РІС‹Р±РѕСЂР° */
   }
 }
 
@@ -386,7 +427,7 @@ async function closeMyOpenTables(exceptId) {
         .eq('id', row.id);
       row.status = 'closed';
     } catch {
-      /* пропускаем */
+      /* РїСЂРѕРїСѓСЃРєР°РµРј */
     }
   }
 }
@@ -404,8 +445,8 @@ function renderTables() {
   tablesEl.innerHTML = open
     .map((row) => {
       const active = row.id === gameRowId ? ' active' : '';
-      const mine = me && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me) ? ' •' : '';
-      return `<button type="button" class="table-chip${active}" data-table="${row.id}">Стол ${row.game_no ?? 1}${mine}</button>`;
+      const mine = me && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me) ? ' вЂў' : '';
+      return `<button type="button" class="table-chip${active}" data-table="${row.id}">РЎС‚РѕР» ${row.game_no ?? 1}${mine}</button>`;
     })
     .join('');
 }
@@ -454,7 +495,7 @@ async function cloudStart() {
       tables = [row, ...tables];
     }
   }
-  if (!row) throw new Error('партия не создалась');
+  if (!row) throw new Error('РїР°СЂС‚РёСЏ РЅРµ СЃРѕР·РґР°Р»Р°СЃСЊ');
 
   if (!Number(row.white_id ?? 0) && myId()) {
     const base = { white_id: myId(), white_name: myName(), updated_at: new Date().toISOString() };
@@ -511,7 +552,7 @@ function startPeople() {
   });
   peopleChannel.on('presence', { event: 'sync' }, () => {
     const count = Object.keys(peopleChannel.presenceState()).length;
-    peopleEl.textContent = count > 0 ? `За доской: ${count}` : '';
+    peopleEl.textContent = count > 0 ? `Р—Р° РґРѕСЃРєРѕР№: ${count}` : '';
   });
   peopleChannel.subscribe((status) => {
     if (status === 'SUBSCRIBED') peopleChannel.track({ id: myId() || 0, at: Date.now() });
@@ -554,7 +595,7 @@ async function cloudWrite(fields) {
 async function cloudMove(from, to, promo) {
   if (!game || busy) return;
   if (!canMoveNow()) {
-    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
+    statusEl.textContent = myRole === 'spectator' ? 'РўС‹ Р·СЂРёС‚РµР»СЊ вЂ” С…РѕРґРёС‚СЊ РЅРµР»СЊР·СЏ' : 'РЎРµР№С‡Р°СЃ РЅРµ С‚РІРѕР№ С…РѕРґ';
     return;
   }
   busy = true;
@@ -563,7 +604,7 @@ async function cloudMove(from, to, promo) {
     const options = position.movesFrom(from).filter((move) => move.to === to);
     const move = options.find((item) => item.promotion === promo) ?? options[0];
     if (!move) {
-      statusEl.textContent = 'Так нельзя';
+      statusEl.textContent = 'РўР°Рє РЅРµР»СЊР·СЏ';
       return;
     }
     const next = position.apply(move);
@@ -572,7 +613,7 @@ async function cloudMove(from, to, promo) {
     selected = null;
     legal = [];
   } catch (error) {
-    statusEl.textContent = `Облако недоступно: ${error.message}`;
+    statusEl.textContent = `РћР±Р»Р°РєРѕ РЅРµРґРѕСЃС‚СѓРїРЅРѕ: ${error.message}`;
   } finally {
     busy = false;
   }
@@ -584,44 +625,44 @@ async function cloudReset() {
     await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [], status: 'open' });
     await clearChat();
   } catch (error) {
-    statusEl.textContent = `Облако недоступно: ${error.message}`;
+    statusEl.textContent = `РћР±Р»Р°РєРѕ РЅРµРґРѕСЃС‚СѓРїРЅРѕ: ${error.message}`;
   }
 }
 
 async function cloudResign() {
   if (!cloudMode || !gameRowId) {
-    statusEl.textContent = 'Сдаться можно в партии из чата';
+    statusEl.textContent = 'РЎРґР°С‚СЊСЃСЏ РјРѕР¶РЅРѕ РІ РїР°СЂС‚РёРё РёР· С‡Р°С‚Р°';
     return;
   }
   if (game?.status !== 'open') {
-    statusEl.textContent = 'Партия уже закончена';
+    statusEl.textContent = 'РџР°СЂС‚РёСЏ СѓР¶Рµ Р·Р°РєРѕРЅС‡РµРЅР°';
     return;
   }
   if (myRole !== 'white' && myRole !== 'black') {
-    statusEl.textContent = 'Ты зритель — сдаваться некому';
+    statusEl.textContent = 'РўС‹ Р·СЂРёС‚РµР»СЊ вЂ” СЃРґР°РІР°С‚СЊСЃСЏ РЅРµРєРѕРјСѓ';
     return;
   }
   try {
     await cloudWrite({ status: myRole === 'white' ? 'black_won' : 'white_won' });
   } catch (error) {
-    statusEl.textContent = `Не получилось: ${error.message}`;
+    statusEl.textContent = `РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ: ${error.message}`;
   }
 }
 
 async function cloudCloseTable() {
   if (!cloudMode || !gameRowId) {
-    statusEl.textContent = 'Закрывать можно партию из чата';
+    statusEl.textContent = 'Р—Р°РєСЂС‹РІР°С‚СЊ РјРѕР¶РЅРѕ РїР°СЂС‚РёСЋ РёР· С‡Р°С‚Р°';
     return;
   }
   const seated = myRole === 'white' || myRole === 'black';
   if (!seated && Number(game?.white?.id ?? 0)) {
-    statusEl.textContent = 'Закрыть стол может только игрок этого стола';
+    statusEl.textContent = 'Р—Р°РєСЂС‹С‚СЊ СЃС‚РѕР» РјРѕР¶РµС‚ С‚РѕР»СЊРєРѕ РёРіСЂРѕРє СЌС‚РѕРіРѕ СЃС‚РѕР»Р°';
     return;
   }
   try {
     await cloudWrite({ status: 'closed' });
   } catch (error) {
-    statusEl.textContent = `Не получилось: ${error.message}`;
+    statusEl.textContent = `РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ: ${error.message}`;
     return;
   }
   const next = tables.find((row) => row.id !== gameRowId && row.status === 'open');
@@ -654,7 +695,7 @@ async function openFreshTable() {
   let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
   if (created.error) created = await table.insert([base]).select().single();
   if (created.error) {
-    statusEl.textContent = `Не получилось открыть новый стол: ${created.error.message}`;
+    statusEl.textContent = `РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РЅРѕРІС‹Р№ СЃС‚РѕР»: ${created.error.message}`;
     return;
   }
   const row = created.data;
@@ -679,7 +720,7 @@ let clearedForGame = null;
 function setChatLocked(locked) {
   if (chatInputEl) {
     chatInputEl.disabled = locked;
-    chatInputEl.placeholder = locked ? 'Партия окончена — чат закрыт' : 'Написать всем за доской…';
+    chatInputEl.placeholder = locked ? 'РџР°СЂС‚РёСЏ РѕРєРѕРЅС‡РµРЅР° вЂ” С‡Р°С‚ Р·Р°РєСЂС‹С‚' : 'РќР°РїРёСЃР°С‚СЊ РІСЃРµРј Р·Р° РґРѕСЃРєРѕР№вЂ¦';
   }
   if (chatSendEl) chatSendEl.disabled = locked;
 }
@@ -715,17 +756,17 @@ function chatTime(value) {
 function renderChat() {
   if (!chatListEl) return;
   if (!chatReady) {
-    chatListEl.innerHTML = '<div class="chat-empty">Чат включится после запуска SQL в Supabase.</div>';
+    chatListEl.innerHTML = '<div class="chat-empty">Р§Р°С‚ РІРєР»СЋС‡РёС‚СЃСЏ РїРѕСЃР»Рµ Р·Р°РїСѓСЃРєР° SQL РІ Supabase.</div>';
     return;
   }
   if (!chatMessages.length) {
-    chatListEl.innerHTML = '<div class="chat-empty">Сообщений пока нет</div>';
+    chatListEl.innerHTML = '<div class="chat-empty">РЎРѕРѕР±С‰РµРЅРёР№ РїРѕРєР° РЅРµС‚</div>';
     return;
   }
   chatListEl.innerHTML = chatMessages
     .map((message) => {
       const mine = Number(message.user_id ?? 0) === myId() ? ' mine' : '';
-      const name = escapeHtml(message.name || 'Гость');
+      const name = escapeHtml(message.name || 'Р“РѕСЃС‚СЊ');
       const text = escapeHtml(message.text);
       const avatar = avatarHtml(message.name, message.photo ?? '', 'avatar-sm');
       return `<div class="chat-msg${mine}">${avatar}<span class="chat-name">${name}</span><span class="chat-text">${text}</span><span class="chat-time">${chatTime(message.created_at)}</span></div>`;
@@ -765,7 +806,7 @@ async function loadChat() {
     .limit(50);
   if (res.error) {
     chatReady = false;
-    if (chatHeadEl) chatHeadEl.textContent = 'Чат недоступен';
+    if (chatHeadEl) chatHeadEl.textContent = 'Р§Р°С‚ РЅРµРґРѕСЃС‚СѓРїРµРЅ';
     renderChat();
     return;
   }
@@ -781,7 +822,7 @@ async function sendChat() {
   if (!text) return;
   chatInputEl.value = '';
   if (!chatReady) {
-    if (chatHeadEl) chatHeadEl.textContent = 'Чат ещё не включён — нужна таблица в Supabase';
+    if (chatHeadEl) chatHeadEl.textContent = 'Р§Р°С‚ РµС‰С‘ РЅРµ РІРєР»СЋС‡С‘РЅ вЂ” РЅСѓР¶РЅР° С‚Р°Р±Р»РёС†Р° РІ Supabase';
     return;
   }
   const base = { room: chatRoom(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) };
@@ -793,7 +834,7 @@ async function sendChat() {
     res = await supabaseClient.from(CHAT_TABLE).insert([base]).select().single();
   }
   if (res.error) {
-    if (chatHeadEl) chatHeadEl.textContent = `Чат: ${res.error.message}`;
+    if (chatHeadEl) chatHeadEl.textContent = `Р§Р°С‚: ${res.error.message}`;
     return;
   }
   addChatMessage(res.data);
@@ -866,13 +907,13 @@ function render() {
 
   if (roleEl) {
     if (myRole === 'white') {      roleEl.className = 'role white';
-      roleEl.textContent = 'Ты играешь белыми';
+      roleEl.textContent = 'РўС‹ РёРіСЂР°РµС€СЊ Р±РµР»С‹РјРё';
     } else if (myRole === 'black') {
       roleEl.className = 'role black';
-      roleEl.textContent = 'Ты играешь чёрными';
+      roleEl.textContent = 'РўС‹ РёРіСЂР°РµС€СЊ С‡С‘СЂРЅС‹РјРё';
     } else if (myRole === 'spectator') {
       roleEl.className = 'role spectator';
-      roleEl.textContent = 'Ты смотришь';
+      roleEl.textContent = 'РўС‹ СЃРјРѕС‚СЂРёС€СЊ';
     } else {
       roleEl.className = 'role hidden';
       roleEl.textContent = '';
@@ -882,74 +923,74 @@ function render() {
   playersEl.innerHTML = '';
 
   const entries = [
-    { side: 'Чёрные', player: game.black, turn: board.turn === 'b' },
-    { side: 'Белые', player: game.white, turn: board.turn === 'w' },
+    { side: 'Р§С‘СЂРЅС‹Рµ', player: game.black, turn: board.turn === 'b' },
+    { side: 'Р‘РµР»С‹Рµ', player: game.white, turn: board.turn === 'w' },
   ];
 
   for (const entry of entries) {
     const span = document.createElement('span');
-    const name = entry.player?.id ? entry.player.name : 'свободно';
+    const name = entry.player?.id ? entry.player.name : 'СЃРІРѕР±РѕРґРЅРѕ';
     const mine = Boolean(entry.player?.id) && entry.player.id === myId();
-    const label = `${entry.side}: ${escapeHtml(name)}${mine ? ' (вы)' : ''}${entry.turn && game.status === 'open' ? ' •' : ''}`;
+    const label = `${entry.side}: ${escapeHtml(name)}${mine ? ' (РІС‹)' : ''}${entry.turn && game.status === 'open' ? ' вЂў' : ''}`;
     span.className = `player${mine ? ' mine' : ''}`;
     const avatar = entry.player?.id ? avatarHtml(name, entry.player?.photo ?? '') : '';
     span.innerHTML = `${avatar}<span class="player-label">${label}</span>`;
     playersEl.appendChild(span);
   }
 
-  movesEl.textContent = game.moves.length ? game.moves.slice(-10).join('  ') : 'ходов пока нет';
+  movesEl.textContent = game.moves.length ? game.moves.slice(-10).join('  ') : 'С…РѕРґРѕРІ РїРѕРєР° РЅРµС‚';
 
   seatsEl.classList.toggle('hidden', !offerSeat);
-  if (offerSeat) seatsTextEl.textContent = 'Чёрные свободны: играть или просто смотреть?';
+  if (offerSeat) seatsTextEl.textContent = 'Р§С‘СЂРЅС‹Рµ СЃРІРѕР±РѕРґРЅС‹: РёРіСЂР°С‚СЊ РёР»Рё РїСЂРѕСЃС‚Рѕ СЃРјРѕС‚СЂРµС‚СЊ?';
 
-  const turnText = board.turn === 'w' ? 'белых' : 'чёрных';
+  const turnText = board.turn === 'w' ? 'Р±РµР»С‹С…' : 'С‡С‘СЂРЅС‹С…';
 
   if (resultEl) {
     const won = game.status === 'done' ? game.winner : null;
     const draw = game.status === 'done' && !won;
     if (won) {
-      const sideName = won === 'w' ? 'Белые' : 'Чёрные';
+      const sideName = won === 'w' ? 'Р‘РµР»С‹Рµ' : 'Р§С‘СЂРЅС‹Рµ';
       const iAmWinner = myRole === (won === 'w' ? 'white' : 'black');
       const iAmLoser = (myRole === 'white' || myRole === 'black') && !iAmWinner;
-      const text = iAmWinner ? 'Вы выиграли' : iAmLoser ? 'Вы проиграли' : `${sideName} победили`;
+      const text = iAmWinner ? 'Р’С‹ РІС‹РёРіСЂР°Р»Рё' : iAmLoser ? 'Р’С‹ РїСЂРѕРёРіСЂР°Р»Рё' : `${sideName} РїРѕР±РµРґРёР»Рё`;
       resultEl.className = `result ${iAmWinner ? 'win' : iAmLoser ? 'lose' : 'draw'}`;
       resultEl.textContent = text;
     } else if (draw) {
       resultEl.className = 'result draw';
-      resultEl.textContent = 'Ничья';
+      resultEl.textContent = 'РќРёС‡СЊСЏ';
     } else {
       resultEl.className = 'result hidden';
       resultEl.textContent = '';
     }
   }
   if (game.status === 'closed') {
-    statusEl.textContent = 'Стол закрыт';
+    statusEl.textContent = 'РЎС‚РѕР» Р·Р°РєСЂС‹С‚';
   } else if (game.status === 'done') {
     const winner = game.winner === 'w' ? game.white?.name : game.winner === 'b' ? game.black?.name : null;
-    statusEl.textContent = winner ? `Партия окончена. Победили: ${winner}` : 'Партия окончена. Ничья';
+    statusEl.textContent = winner ? `РџР°СЂС‚РёСЏ РѕРєРѕРЅС‡РµРЅР°. РџРѕР±РµРґРёР»Рё: ${winner}` : 'РџР°СЂС‚РёСЏ РѕРєРѕРЅС‡РµРЅР°. РќРёС‡СЊСЏ';
   } else if (!game.black?.id) {
-    statusEl.textContent = myRole === 'white' ? 'Ждём соперника' : `Ход ${turnText}`;
+    statusEl.textContent = myRole === 'white' ? 'Р–РґС‘Рј СЃРѕРїРµСЂРЅРёРєР°' : `РҐРѕРґ ${turnText}`;
   } else if (myRole === 'spectator') {
-    statusEl.textContent = `Зритель. Ход ${turnText}`;
+    statusEl.textContent = `Р—СЂРёС‚РµР»СЊ. РҐРѕРґ ${turnText}`;
   } else if (myRole === 'white' || myRole === 'black') {
-    statusEl.textContent = canMoveNow() ? 'Твой ход' : `Ход ${turnText}`;
+    statusEl.textContent = canMoveNow() ? 'РўРІРѕР№ С…РѕРґ' : `РҐРѕРґ ${turnText}`;
   } else {
-    statusEl.textContent = `Ход ${turnText}`;
+    statusEl.textContent = `РҐРѕРґ ${turnText}`;
   }
 
   if (myRole === 'spectator') {
-    hintEl.textContent = 'Ты зритель: играют двое. Их ходы появляются сами.';
+    hintEl.textContent = 'РўС‹ Р·СЂРёС‚РµР»СЊ: РёРіСЂР°СЋС‚ РґРІРѕРµ. РС… С…РѕРґС‹ РїРѕСЏРІР»СЏСЋС‚СЃСЏ СЃР°РјРё.';
   } else if (myRole === 'white' || myRole === 'black') {
-    hintEl.textContent = `Ты играешь ${myRole === 'white' ? 'белыми' : 'чёрными'}. Тапни фигуру, потом клетку.`;
+    hintEl.textContent = `РўС‹ РёРіСЂР°РµС€СЊ ${myRole === 'white' ? 'Р±РµР»С‹РјРё' : 'С‡С‘СЂРЅС‹РјРё'}. РўР°РїРЅРё С„РёРіСѓСЂСѓ, РїРѕС‚РѕРј РєР»РµС‚РєСѓ.`;
   } else {
-    hintEl.textContent = 'Тапни фигуру, потом клетку. Ход отправится сразу.';
+    hintEl.textContent = 'РўР°РїРЅРё С„РёРіСѓСЂСѓ, РїРѕС‚РѕРј РєР»РµС‚РєСѓ. РҐРѕРґ РѕС‚РїСЂР°РІРёС‚СЃСЏ СЃСЂР°Р·Сѓ.';
   }
 }
 
 function onCell(index) {
   if (!game || game.status !== 'open' || busy) return;
   if (!canMoveNow()) {
-    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
+    statusEl.textContent = myRole === 'spectator' ? 'РўС‹ Р·СЂРёС‚РµР»СЊ вЂ” С…РѕРґРёС‚СЊ РЅРµР»СЊР·СЏ' : 'РЎРµР№С‡Р°СЃ РЅРµ С‚РІРѕР№ С…РѕРґ';
     return;
   }
 
@@ -1028,7 +1069,7 @@ async function sendMove(from, to, promo) {
     render();
     saveGame();
   } catch (error) {
-    statusEl.textContent = 'Нет связи с сервером';
+    statusEl.textContent = 'РќРµС‚ СЃРІСЏР·Рё СЃ СЃРµСЂРІРµСЂРѕРј';
   } finally {
     busy = false;
   }
@@ -1114,7 +1155,7 @@ takeBlackEl.addEventListener('click', async () => {
     applyRow(res.data);
     saveGame();
   } catch {
-    statusEl.textContent = 'Место за чёрных уже заняли — ты зритель';
+    statusEl.textContent = 'РњРµСЃС‚Рѕ Р·Р° С‡С‘СЂРЅС‹С… СѓР¶Рµ Р·Р°РЅСЏР»Рё вЂ” С‚С‹ Р·СЂРёС‚РµР»СЊ';
     render();
   }
 });
@@ -1125,10 +1166,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.getElementById('copyInvite').addEventListener('click', async () => {
-  const text = `Шахматы, партия #${game.id}: ${game.white?.name ?? ''} — ${game.black?.name ?? 'нужен соперник'}. Открывай мини-приложение и играй.`;
+  const text = `РЁР°С…РјР°С‚С‹, РїР°СЂС‚РёСЏ #${game.id}: ${game.white?.name ?? ''} вЂ” ${game.black?.name ?? 'РЅСѓР¶РµРЅ СЃРѕРїРµСЂРЅРёРє'}. РћС‚РєСЂС‹РІР°Р№ РјРёРЅРё-РїСЂРёР»РѕР¶РµРЅРёРµ Рё РёРіСЂР°Р№.`;
   try {
     await navigator.clipboard.writeText(text);
-    hintEl.textContent = 'Текст скопирован — вставь в чат.';
+    hintEl.textContent = 'РўРµРєСЃС‚ СЃРєРѕРїРёСЂРѕРІР°РЅ вЂ” РІСЃС‚Р°РІСЊ РІ С‡Р°С‚.';
   } catch {
     hintEl.textContent = text;
   }
@@ -1143,7 +1184,7 @@ async function enter() {
       }
     } catch (error) {
       cloudMode = false;
-      statusEl.textContent = `Облако не отвечает: ${error.message}`;
+      statusEl.textContent = `РћР±Р»Р°РєРѕ РЅРµ РѕС‚РІРµС‡Р°РµС‚: ${error.message}`;
     }
   }
   if (!myChat() || !myId()) {
@@ -1178,13 +1219,13 @@ async function poll() {
       }
     }
   } catch {
-    /* тихо: попробуем в следующий раз */
+    /* С‚РёС…Рѕ: РїРѕРїСЂРѕР±СѓРµРј РІ СЃР»РµРґСѓСЋС‰РёР№ СЂР°Р· */
   }
   setTimeout(poll, 2500);
 }
 
 enter().catch((error) => {
-  statusEl.textContent = `Ошибка: ${error.message}`;
+  statusEl.textContent = `РћС€РёР±РєР°: ${error.message}`;
 });
 
 function startLocal() {
@@ -1195,7 +1236,7 @@ function startLocal() {
     flipped = Boolean(saved.flipped);
   } else {
     board = new Board();
-    game = { id: 0, fen: board.fen(), moves: [], status: 'open', winner: null, white: { id: myId(), name: 'Первый' }, black: { name: 'второй игрок' }, role: 'white', canMove: true };
+    game = { id: 0, fen: board.fen(), moves: [], status: 'open', winner: null, white: { id: myId(), name: 'РџРµСЂРІС‹Р№' }, black: { name: 'РІС‚РѕСЂРѕР№ РёРіСЂРѕРє' }, role: 'white', canMove: true };
     flipped = false;
   }
   selected = null;
@@ -1203,15 +1244,15 @@ function startLocal() {
   render();
   saveGame();
   hintEl.textContent = saved?.game
-    ? 'Партия сохранена на этом телефоне: продолжаем с того же хода.'
-    : 'Без сервера: ходят оба по очереди на этом экране. Ходы в чат не уходят.';
+    ? 'РџР°СЂС‚РёСЏ СЃРѕС…СЂР°РЅРµРЅР° РЅР° СЌС‚РѕРј С‚РµР»РµС„РѕРЅРµ: РїСЂРѕРґРѕР»Р¶Р°РµРј СЃ С‚РѕРіРѕ Р¶Рµ С…РѕРґР°.'
+    : 'Р‘РµР· СЃРµСЂРІРµСЂР°: С…РѕРґСЏС‚ РѕР±Р° РїРѕ РѕС‡РµСЂРµРґРё РЅР° СЌС‚РѕРј СЌРєСЂР°РЅРµ. РҐРѕРґС‹ РІ С‡Р°С‚ РЅРµ СѓС…РѕРґСЏС‚.';
 }
 
 
 const floatBtnEl = document.getElementById('floatBtn');
 const floatMenuEl = document.getElementById('floatMenu');
 const FLOAT_KEY = 'chess-float-pos';
-const BOT_LEVEL_NAMES = { easy: 'Лёгкий', mid: 'Средний', hard: 'Гроссмейстер' };
+const BOT_LEVEL_NAMES = { easy: 'Р›С‘РіРєРёР№', mid: 'РЎСЂРµРґРЅРёР№', hard: 'Р“СЂРѕСЃСЃРјРµР№СЃС‚РµСЂ' };
 
 let floatStep = 'root';
 let floatLevel = 'easy';
@@ -1237,7 +1278,7 @@ function loadFloatPosition() {
       return;
     }
   } catch {
-    /* позиция по умолчанию */
+    /* РїРѕР·РёС†РёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ */
   }
   placeFloat(window.innerWidth - 60, 10);
 }
@@ -1270,15 +1311,15 @@ function menuItem(text, action) {
 
 async function createBotTable(side, level) {
   if (!cloudReady() || !supabaseClient) {
-    statusEl.textContent = 'Без связи нельзя позвать бота';
+    statusEl.textContent = 'Р‘РµР· СЃРІСЏР·Рё РЅРµР»СЊР·СЏ РїРѕР·РІР°С‚СЊ Р±РѕС‚Р°';
     return;
   }
   const botId = Number(CFG.botId ?? 0);
   if (!botId) {
-    statusEl.textContent = 'Бот не настроен';
+    statusEl.textContent = 'Р‘РѕС‚ РЅРµ РЅР°СЃС‚СЂРѕРµРЅ';
     return;
   }
-  const botName = `Бот · ${BOT_LEVEL_NAMES[level] ?? BOT_LEVEL_NAMES.easy}`;
+  const botName = `Р‘РѕС‚ В· ${BOT_LEVEL_NAMES[level] ?? BOT_LEVEL_NAMES.easy}`;
   const human = { id: myId() || 0, name: myName() };
   const machine = { id: botId, name: botName };
   const white = side === 'w' ? human : machine;
@@ -1303,7 +1344,7 @@ async function createBotTable(side, level) {
   let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
   if (created.error) created = await table.insert([base]).select().single();
   if (created.error) {
-    statusEl.textContent = `Бот не сел: ${created.error.message}`;
+    statusEl.textContent = `Р‘РѕС‚ РЅРµ СЃРµР»: ${created.error.message}`;
     return;
   }
   const row = created.data;
@@ -1315,7 +1356,7 @@ async function createBotTable(side, level) {
   renderTables();
   resetChatForGame();
   closeFloatMenu();
-  statusEl.textContent = `Стол с ботом (${BOT_LEVEL_NAMES[level] ?? ''}) готов`;
+  statusEl.textContent = `РЎС‚РѕР» СЃ Р±РѕС‚РѕРј (${BOT_LEVEL_NAMES[level] ?? ''}) РіРѕС‚РѕРІ`;
 }
 
 function renderFloatMenu() {
@@ -1323,46 +1364,46 @@ function renderFloatMenu() {
   floatMenuEl.innerHTML = '';
   const title = document.createElement('div');
   title.className = 'float-menu-title';
-  title.textContent = 'Меню';
+  title.textContent = 'РњРµРЅСЋ';
   floatMenuEl.appendChild(title);
 
   if (floatStep === 'root') {
-    floatMenuEl.appendChild(menuItem('♟ Игра', async () => { floatStep = 'mode'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('🎲 Предложить спор', async () => {
+    floatMenuEl.appendChild(menuItem('в™џ РРіСЂР°', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('рџЋІ РџСЂРµРґР»РѕР¶РёС‚СЊ СЃРїРѕСЂ', async () => {
       closeFloatMenu();
-      hintEl.textContent = 'Напиши в чат: спор Локо-Динамо — бот соберёт ставки';
+      hintEl.textContent = 'РќР°РїРёС€Рё РІ С‡Р°С‚: СЃРїРѕСЂ Р›РѕРєРѕ-Р”РёРЅР°РјРѕ вЂ” Р±РѕС‚ СЃРѕР±РµСЂС‘С‚ СЃС‚Р°РІРєРё';
     }));
-    floatMenuEl.appendChild(menuItem('🍺 Долги', async () => {
+    floatMenuEl.appendChild(menuItem('рџЌє Р”РѕР»РіРё', async () => {
       closeFloatMenu();
-      hintEl.textContent = 'Напиши в чат: долги — бот покажет, кто кому проставляется';
+      hintEl.textContent = 'РќР°РїРёС€Рё РІ С‡Р°С‚: РґРѕР»РіРё вЂ” Р±РѕС‚ РїРѕРєР°Р¶РµС‚, РєС‚Рѕ РєРѕРјСѓ РїСЂРѕСЃС‚Р°РІР»СЏРµС‚СЃСЏ';
     }));
-    floatMenuEl.appendChild(menuItem('ℹ Правила', async () => { closeFloatMenu(); openRules(); }));
+    floatMenuEl.appendChild(menuItem('в„№ РџСЂР°РІРёР»Р°', async () => { closeFloatMenu(); openRules(); }));
     return;
   }
 
   if (floatStep === 'mode') {
-    floatMenuEl.appendChild(menuItem('👤 Соперник', async () => {
+    floatMenuEl.appendChild(menuItem('рџ‘¤ РЎРѕРїРµСЂРЅРёРє', async () => {
       await openFreshTable();
       closeFloatMenu();
-      hintEl.textContent = 'Стол создан. Позови соперника в чате';
+      hintEl.textContent = 'РЎС‚РѕР» СЃРѕР·РґР°РЅ. РџРѕР·РѕРІРё СЃРѕРїРµСЂРЅРёРєР° РІ С‡Р°С‚Рµ';
     }));
-    floatMenuEl.appendChild(menuItem('🤖 Бот', async () => { floatStep = 'level'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'root'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('рџ¤– Р‘РѕС‚', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('в†ђ РќР°Р·Р°Рґ', async () => { floatStep = 'root'; renderFloatMenu(); }));
     return;
   }
 
   if (floatStep === 'level') {
-    floatMenuEl.appendChild(menuItem('Лёгкий', async () => { floatLevel = 'easy'; floatStep = 'side'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('Средний', async () => { floatLevel = 'mid'; floatStep = 'side'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('Гроссмейстер', async () => { floatLevel = 'hard'; floatStep = 'side'; renderFloatMenu(); }));
-    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Р›С‘РіРєРёР№', async () => { floatLevel = 'easy'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('РЎСЂРµРґРЅРёР№', async () => { floatLevel = 'mid'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Р“СЂРѕСЃСЃРјРµР№СЃС‚РµСЂ', async () => { floatLevel = 'hard'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('в†ђ РќР°Р·Р°Рґ', async () => { floatStep = 'mode'; renderFloatMenu(); }));
     return;
   }
 
   if (floatStep === 'side') {
-    floatMenuEl.appendChild(menuItem('♔ Я белые', async () => createBotTable('w', floatLevel)));
-    floatMenuEl.appendChild(menuItem('♚ Я чёрные', async () => createBotTable('b', floatLevel)));
-    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('в™” РЇ Р±РµР»С‹Рµ', async () => createBotTable('w', floatLevel)));
+    floatMenuEl.appendChild(menuItem('в™љ РЇ С‡С‘СЂРЅС‹Рµ', async () => createBotTable('b', floatLevel)));
+    floatMenuEl.appendChild(menuItem('в†ђ РќР°Р·Р°Рґ', async () => { floatStep = 'level'; renderFloatMenu(); }));
     return;
   }
 }
@@ -1378,7 +1419,7 @@ if (floatBtnEl) {
       moved: false,
       last: { x: rect.left, y: rect.top },
     };
-    try { floatBtnEl.setPointerCapture(event.pointerId); } catch { /* старые браузеры */ }
+    try { floatBtnEl.setPointerCapture(event.pointerId); } catch { /* СЃС‚Р°СЂС‹Рµ Р±СЂР°СѓР·РµСЂС‹ */ }
   });
 
   floatBtnEl.addEventListener('pointermove', (event) => {
@@ -1394,7 +1435,7 @@ if (floatBtnEl) {
     const state = dragState;
     dragState = null;
     if (state.moved) {
-      try { localStorage.setItem(FLOAT_KEY, JSON.stringify(state.last)); } catch { /* без сохранения */ }
+      try { localStorage.setItem(FLOAT_KEY, JSON.stringify(state.last)); } catch { /* Р±РµР· СЃРѕС…СЂР°РЅРµРЅРёСЏ */ }
       return;
     }
     if (floatMenuEl && !floatMenuEl.classList.contains('hidden')) closeFloatMenu();

@@ -709,3 +709,66 @@ button:active {
 .float-menu button:hover {
   background: #2b333d;
 }
+
+.main-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #1b1d21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.main-menu.hidden {
+  display: none;
+}
+
+.main-menu-card {
+  width: min(100vw - 40px, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #1f242b;
+  border: 1px solid #2f3742;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.main-menu-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mm-btn {
+  padding: 14px 16px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #2f3742;
+  background: #252a31;
+  color: #e6ecf4;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mm-btn:hover {
+  background: #2c333c;
+}
+
+.mm-btn-ghost {
+  background: transparent;
+}
+
+.mm-hint {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #9fb1c7;
+  border-top: 1px solid #2f3742;
+  padding-top: 10px;
+}
+
+.mm-hint.hidden {
+  display: none;
+}

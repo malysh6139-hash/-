@@ -2,11 +2,11 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="chess-version" content="26" />
+    <meta name="chess-version" content="27" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Шахматы — споры на кружку</title>
-    <link rel="stylesheet" href="style.css?v=26" />
-    <script src="config.js?v=26"></script>
+    <link rel="stylesheet" href="style.css?v=27" />
+    <script src="config.js?v=27"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://st.max.ru/js/max-web-app.js"></script>
   </head>
@@ -16,7 +16,7 @@
       <div class="bar-right">
         <div id="people" class="people"></div>
         <div id="status" class="status">Загружаюсь…</div>
-        <button id="menuBtn" class="dots" type="button" aria-label="правила игры" title="Правила игры">⋮</button>
+        <button id="menuBtn" class="dots" type="button" aria-label="меню" title="Меню">☰</button>
       </div>
     </header>
 
@@ -60,6 +60,17 @@
         </div>
       </div>
     </main>
+
+    <div id="mainMenu" class="main-menu">
+      <div class="main-menu-card">
+        <div class="main-menu-title">Меню</div>
+        <button id="mmChess" class="mm-btn" type="button">♟ Шахматы</button>
+        <button id="mmBet" class="mm-btn" type="button">🎲 Предложить спор</button>
+        <button id="mmDebts" class="mm-btn" type="button">🍺 Долги</button>
+        <button id="mmRules" class="mm-btn mm-btn-ghost" type="button">ℹ Правила</button>
+        <div id="mmHint" class="mm-hint hidden"></div>
+      </div>
+    </div>
 
     <div id="promo" class="promo hidden">
       <div class="promo-box">
@@ -178,6 +189,6 @@
       </div>
     </div>
 
-    <script type="module" src="app.js?v=26"></script>
+    <script type="module" src="app.js?v=27"></script>
   </body>
 </html>
