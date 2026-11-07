@@ -76,6 +76,7 @@ rulesEl.addEventListener('click', (event) => {
 });
 
 let myRole = 'free';
+let roleOrientation = null;
 let offerSeat = false;
 
 const webApp = window.WebApp;
@@ -213,8 +214,14 @@ function applyRow(row) {
   } catch {
     return;
   }
-  myRole = roleOf(row);
-  offerSeat = myRole === 'spectator' && !Number(row.black_id ?? 0);
+  const role = roleOf(row);
+  if (role !== roleOrientation) {
+    roleOrientation = role;
+    if (role === 'black') flipped = true;
+    else if (role === 'white') flipped = false;
+  }
+  myRole = role;
+  offerSeat = role === 'spectator' && !Number(row.black_id ?? 0);
   game = rowToGame(row);
   render();
   saveGame();
