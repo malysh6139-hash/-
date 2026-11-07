@@ -207,6 +207,36 @@ main {
   padding: 6px 12px 20px;
 }
 
+.tables {
+  width: min(94vw, 460px);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tables.hidden {
+  display: none;
+}
+
+.table-chip {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #2f3742;
+  background: #23282f;
+  color: #cfd8e3;
+  white-space: nowrap;
+}
+
+.table-chip.active {
+  background: #2e4a37;
+  border-color: #4caf50;
+  color: #eef1f5;
+  font-weight: 600;
+}
+
 .board {
   width: min(94vw, 460px);
   aspect-ratio: 1 / 1;
