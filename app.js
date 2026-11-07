@@ -152,9 +152,15 @@ async function cloudStart() {
       .insert([{ room, board_state: fresh.fen(), is_white_turn: true, moves: [] }])
       .select()
       .single();
-    if (created.error) throw new Error(created.error.message);
-    row = created.data;
+    if (created.error) {
+      const retry = await table.select('*').eq('room', room).limit(1);
+      if (retry.error) throw new Error(created.error.message);
+      row = retry.data?.[0] ?? null;
+    } else {
+      row = created.data;
+    }
   }
+  if (!row) throw new Error('партия не создалась');
 
   gameRowId = row?.id ?? null;
   cloudMode = true;
