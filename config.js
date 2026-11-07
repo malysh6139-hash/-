@@ -1,5 +1,5 @@
 window.CHESS_CONFIG = {
-  supabaseUrl: '',
-  supabaseKey: '',
+  supabaseUrl: 'https://kjwpksvdnfbccvqsqgdz.supabase.co',
+  supabaseKey: 'sb_publishable_6pHsDR2-QqbaPxzOKLh2Aw__TWSAj1H',
   table: 'games',
 };
