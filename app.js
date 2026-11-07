@@ -36,7 +36,7 @@ const rulesEl = document.getElementById('rules');
 const rulesClose = document.getElementById('rulesClose');
 
 const FILE_NAMES = 'abcdefgh';
-const APP_VERSION = '20';
+const APP_VERSION = '21';
 const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
 const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
 const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
@@ -163,7 +163,8 @@ function myName() {
 
 function myPhoto() {
   const user = unsafe?.user;
-  return user?.photo_url ?? user?.photo?.url ?? '';
+  const fromUrl = new URLSearchParams(location.search).get('photo') ?? '';
+  return user?.photo_url ?? user?.photo?.url ?? fromUrl;
 }
 
 function escapeHtml(value) {
@@ -435,12 +436,34 @@ async function cloudStart() {
   localMode = true;
   applyRow(row);
   renderTables();
+  syncMyPhoto();
   cloudSubscribe();
   startPeople();
   return true;
 }
 
 let peopleChannel = null;
+
+async function syncMyPhoto() {
+  const photo = myPhoto();
+  if (!supabaseClient || !gameRowId || !photo) return;
+  const me = myId();
+  const patch = {};
+  if (myRole === 'white' && Number(game?.white?.id ?? 0) === me && game.white.photo !== photo) {
+    patch.white_photo = photo;
+  }
+  if (myRole === 'black' && Number(game?.black?.id ?? 0) === me && game.black.photo !== photo) {
+    patch.black_photo = photo;
+  }
+  if (!Object.keys(patch).length) return;
+  const res = await supabaseClient
+    .from(CFG.table || 'games')
+    .update(patch)
+    .eq('id', gameRowId)
+    .select()
+    .single();
+  if (!res.error && res.data) applyRow(res.data);
+}
 
 function startPeople() {
   if (!supabaseClient || !peopleEl) return;
