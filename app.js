@@ -498,7 +498,7 @@ function render() {
     }
   }
 
-  gameIdEl.textContent = `#${game.id}`;
+  gameIdEl.textContent = game.id ? `#${game.id}` : '';
   playersEl.innerHTML = '';
 
   const entries = [
@@ -509,8 +509,9 @@ function render() {
   for (const entry of entries) {
     const span = document.createElement('span');
     const name = entry.player?.name || 'место свободно';
-    span.textContent = `${entry.side}: ${name}${entry.turn && game.status === 'open' ? ' •' : ''}`;
-    if (entry.player?.id && entry.player.id === myId()) span.style.fontWeight = '700';
+    const mine = Boolean(entry.player?.id) && entry.player.id === myId();
+    span.textContent = `${entry.side}: ${name}${mine ? ' (вы)' : ''}${entry.turn && game.status === 'open' ? ' •' : ''}`;
+    if (mine) span.style.fontWeight = '700';
     playersEl.appendChild(span);
   }
 
