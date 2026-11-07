@@ -407,6 +407,33 @@ main {
   white-space: nowrap;
 }
 
+.result {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.result.win {
+  background: rgba(72, 160, 96, 0.2);
+  border-color: #48a060;
+  color: #b8f0c8;
+}
+
+.result.lose {
+  background: rgba(190, 80, 80, 0.2);
+  border-color: #be5050;
+  color: #f6c8c8;
+}
+
+.result.draw {
+  background: rgba(150, 160, 175, 0.15);
+  border-color: #6c7a8c;
+  color: #d7dee8;
+}
+
 .role {
   padding: 9px 12px;
   border-radius: 10px;
