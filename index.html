@@ -769,6 +769,10 @@ button:active {
   background: transparent;
 }
 
+#startMenu .hidden {
+  display: none;
+}
+
 .mm-hint {
   font-size: 14px;
   line-height: 1.45;
@@ -845,7 +849,31 @@ window.CHESS_CONFIG = {
       </div>
     </main>
 
-    <div id="mainMenu" class="main-menu">
+    <div id="startMenu" class="main-menu">
+      <div class="main-menu-card">
+        <div id="startStepMode">
+          <div class="main-menu-title">С кем играем?</div>
+          <button id="startHuman" class="mm-btn" type="button">👤 С человеком</button>
+          <button id="startBot" class="mm-btn" type="button">🤖 С ботом</button>
+          <div class="mm-hint">Человек — партия в этом чате, второй заходит с телефона. Бот — играешь один, он отвечает сам.</div>
+        </div>
+        <div id="startStepLevel" class="hidden">
+          <div class="main-menu-title">Сложность бота</div>
+          <button class="mm-btn start-level" data-level="easy" type="button">Лёгкий</button>
+          <button class="mm-btn start-level" data-level="mid" type="button">Средний</button>
+          <button class="mm-btn start-level" data-level="hard" type="button">Гроссмейстер</button>
+          <button class="mm-btn mm-btn-ghost" data-back="mode" type="button">← Назад</button>
+        </div>
+        <div id="startStepSide" class="hidden">
+          <div class="main-menu-title">За кого играешь?</div>
+          <button class="mm-btn start-side" data-side="w" type="button">♔ Я белые</button>
+          <button class="mm-btn start-side" data-side="b" type="button">♚ Я чёрные</button>
+          <button class="mm-btn mm-btn-ghost" data-back="level" type="button">← Назад</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mainMenu" class="main-menu hidden">
       <div class="main-menu-card">
         <div class="main-menu-title">Меню</div>
         <button id="mmChess" class="mm-btn" type="button">♟ Шахматы</button>
@@ -2626,9 +2654,71 @@ async function poll() {
   setTimeout(poll, 2500);
 }
 
-enter().catch((error) => {
-  statusEl.textContent = `Ошибка: ${error.message}`;
+const startMenuEl = document.getElementById('startMenu');
+
+function closeStart() {
+  startMenuEl?.classList.add('hidden');
+}
+
+async function ensureCloud() {
+  if (supabaseClient || !cloudReady()) return;
+  supabaseClient = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  tables = await loadTables();
+}
+
+document.getElementById('startHuman')?.addEventListener('click', async () => {
+  closeStart();
+  statusEl.textContent = 'Ищем стол в чате…';
+  try {
+    await enter();
+  } catch (error) {
+    statusEl.textContent = `Ошибка: ${error.message}`;
+  }
 });
+
+document.getElementById('startBot')?.addEventListener('click', async () => {
+  showStartStep('level');
+  try {
+    await ensureCloud();
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+let startLevelName = 'easy';
+
+function showStartStep(step) {
+  const map = { mode: 'startStepMode', level: 'startStepLevel', side: 'startStepSide' };
+  for (const [key, id] of Object.entries(map)) {
+    document.getElementById(id)?.classList.toggle('hidden', key !== step);
+  }
+  startMenuEl?.classList.remove('hidden');
+}
+
+document.querySelectorAll('.start-level').forEach((button) => {
+  button.addEventListener('click', () => {
+    startLevelName = button.dataset.level || 'easy';
+    showStartStep('side');
+  });
+});
+
+document.querySelectorAll('.start-side').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const side = button.dataset.side === 'b' ? 'b' : 'w';
+    closeStart();
+    try {
+      await ensureCloud();
+      await createBotTable(side, startLevelName);
+    } catch (error) {
+      statusEl.textContent = `Бот не сел: ${error.message}`;
+    }
+  });
+});
+
+document.querySelectorAll('[data-back]').forEach((button) => {
+  button.addEventListener('click', () => showStartStep(button.dataset.back));
+});
+
 
 function startLocal() {
   localMode = true;
