@@ -2994,6 +2994,53 @@ if (floatBtnEl) {
   });
 }
 
+function openTableRow(rows) {
+  const open = (rows ?? []).filter((row) => row.status === 'open');
+  if (!open.length) return null;
+  const saved = savedTableId();
+  const bySaved = saved ? open.find((row) => row.id === saved) : null;
+  if (bySaved) return bySaved;
+  const newest = (list) => [...list].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0] ?? null;
+  const me = myId();
+  if (me) {
+    const mine = open.filter((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+    const latest = newest(mine);
+    if (latest) return latest;
+  }
+  return newest(open);
+}
+
+async function boot() {
+  if (!cloudReady()) {
+    showStartStep('mode');
+    return;
+  }
+  try {
+    await ensureCloud();
+    tables = await loadTables();
+    const row = openTableRow(tables);
+    if (!row) {
+      showStartStep('mode');
+      return;
+    }
+    closeStart();
+    gameRowId = row.id;
+    rememberTable(row.id);
+    cloudMode = true;
+    localMode = true;
+    applyRow(row);
+    renderTables();
+    syncMyPhoto();
+    cloudSubscribe();
+    startPeople();
+  } catch (error) {
+    statusEl.textContent = `Облако не отвечает: ${error.message}`;
+    showStartStep('mode');
+  }
+}
+
+boot();
+
 </script>
   </body>
 </html>
