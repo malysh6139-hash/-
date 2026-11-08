@@ -2804,6 +2804,41 @@ function menuItem(text, action) {
   return button;
 }
 
+async function autoSeatBlack() {
+  if (!supabaseClient || !cloudMode || !gameRowId || !myId() || !game) return;
+  if (game.status !== 'open') return;
+  if (Number(game.black?.id ?? 0)) return;
+  if (Number(game.white?.id ?? 0) === myId()) return;
+  try {
+    const base = { black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let res = photo
+      ? await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ ...base, black_photo: photo })
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single()
+      : null;
+    if (!res || res.error) {
+      res = await supabaseClient
+        .from(CFG.table || 'games')
+        .update(base)
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single();
+    }
+    if (!res.error && res.data) {
+      applyRow(res.data);
+      saveGame();
+    }
+  } catch {
+    /* место уже заняли — останемся зрителем */
+  }
+}
+
 async function adoptTable(row) {
   gameRowId = row.id;
   cloudMode = true;
@@ -2815,6 +2850,7 @@ async function adoptTable(row) {
   cloudSubscribe();
   startPeople();
   closeFloatMenu();
+  await autoSeatBlack();
 }
 
 async function createHumanTable() {
@@ -3054,6 +3090,7 @@ async function boot() {
     syncMyPhoto();
     cloudSubscribe();
     startPeople();
+    await autoSeatBlack();
   } catch (error) {
     statusEl.textContent = `Облако не отвечает: ${error.message}`;
     showStartStep('mode');
