@@ -2842,10 +2842,15 @@ async function createBotTable(side, level) {
   const row = created.data;
   tables = [row, ...tables];
   gameRowId = row.id;
+  cloudMode = true;
+  localMode = true;
   rememberTable(row.id);
   await closeMyOpenTables(row.id);
   applyRow(row);
   renderTables();
+  syncMyPhoto();
+  cloudSubscribe();
+  startPeople();
   resetChatForGame();
   closeFloatMenu();
   statusEl.textContent = `Стол с ботом (${BOT_LEVEL_NAMES[level] ?? ''}) готов`;
