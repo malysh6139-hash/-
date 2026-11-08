@@ -2804,11 +2804,41 @@ function menuItem(text, action) {
   return button;
 }
 
+async function adoptTable(row) {
+  gameRowId = row.id;
+  cloudMode = true;
+  localMode = true;
+  rememberTable(row.id);
+  applyRow(row);
+  renderTables();
+  syncMyPhoto();
+  cloudSubscribe();
+  startPeople();
+  closeFloatMenu();
+}
+
 async function createHumanTable() {
   if (!cloudReady() || !supabaseClient) {
     statusEl.textContent = 'Без связи нельзя позвать соперника';
     return;
   }
+  tables = await loadTables();
+  const me = myId() || 0;
+  const open = tables.filter((row) => row.status === 'open');
+  const mine = open.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+  const freeSeat = open.find((row) => !Number(row.black_id ?? 0) && Number(row.white_id ?? 0) !== me);
+  const existing = mine ?? freeSeat ?? open[0] ?? null;
+
+  if (existing) {
+    await adoptTable(existing);
+    closeStart();
+    resetChatForGame();
+    statusEl.textContent = Number(existing.white_id ?? 0) === me || Number(existing.black_id ?? 0) === me
+      ? 'Стол найден — продолжаем'
+      : 'Стол найден';
+    return;
+  }
+
   const table = supabaseClient.from(CFG.table || 'games');
   const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
   const fresh = new Board();
@@ -2817,7 +2847,7 @@ async function createHumanTable() {
     board_state: fresh.fen(),
     is_white_turn: true,
     moves: [],
-    white_id: myId() || null,
+    white_id: me || null,
     white_name: myName(),
     status: 'open',
     updated_at: new Date().toISOString(),
@@ -2830,18 +2860,9 @@ async function createHumanTable() {
   }
   const row = created.data;
   tables = [row, ...tables];
-  gameRowId = row.id;
-  cloudMode = true;
-  localMode = true;
-  rememberTable(row.id);
   await closeMyOpenTables(row.id);
-  applyRow(row);
-  renderTables();
-  syncMyPhoto();
-  cloudSubscribe();
-  startPeople();
+  await adoptTable(row);
   resetChatForGame();
-  closeFloatMenu();
   statusEl.textContent = myChat()
     ? 'Стол открыт. Приглашение уйдёт в чат'
     : 'Стол открыт. Соперник заходит с другого телефона';
