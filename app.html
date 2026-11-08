@@ -1,0 +1,3106 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="chess-version" content="28" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Шахматы — споры на кружку</title>
+    <style>
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1b1d21;
+  color: #eef1f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  padding: 12px 14px 6px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.muted {
+  color: #8b93a1;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.status {
+  font-size: 13px;
+  color: #9fb1c7;
+  text-align: right;
+}
+
+.bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dots {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 10px;
+  border: 1px solid #2f3742;
+  background: #252a31;
+  color: #e6ecf4;
+  cursor: pointer;
+}
+
+.rules {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.rules.hidden {
+  display: none;
+}
+
+.rules-card {
+  width: min(100vw, 560px);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #1f242b;
+  border-radius: 14px 14px 0 0;
+  border: 1px solid #2f3742;
+  overflow: hidden;
+}
+
+.rules-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #2f3742;
+}
+
+.rules-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rules-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.rules-body {
+  overflow-y: auto;
+  padding: 12px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rules-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.rules-item.rules-goal {
+  display: block;
+}
+
+.rules-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #c7d1dd;
+}
+
+.rules-text b {
+  display: block;
+  font-size: 14px;
+  color: #eef1f5;
+  margin-bottom: 2px;
+}
+
+.rules-text p {
+  margin: 0;
+}
+
+.rules-credit {
+  font-size: 11px;
+  color: #7d8798;
+  padding-top: 4px;
+}
+
+.diagram {
+  flex: none;
+  width: 132px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.dg-sq {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.dg-sq.light {
+  background: #eadfc8;
+  color: #22252a;
+}
+
+.dg-sq.dark {
+  background: #8a6c4e;
+  color: #10131a;
+}
+
+.dg-sq span {
+  position: relative;
+  z-index: 1;
+}
+
+.dg-sq.mark::after {
+  content: '';
+  position: absolute;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: rgba(30, 120, 60, 0.6);
+}
+
+.dg-sq.hit::after {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border: 2px solid rgba(180, 40, 40, 0.75);
+  border-radius: 50%;
+}
+
+.dg-sq.src {
+  box-shadow: inset 0 0 0 2px rgba(76, 175, 80, 0.9);
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 20px;
+}
+
+.tables {
+  width: min(94vw, 460px);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tables.hidden {
+  display: none;
+}
+
+.table-chip {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #2f3742;
+  background: #23282f;
+  color: #cfd8e3;
+  white-space: nowrap;
+}
+
+.table-chip.active {
+  background: #2e4a37;
+  border-color: #4caf50;
+  color: #eef1f5;
+  font-weight: 600;
+}
+
+.board {
+  width: min(94vw, 460px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(8vw, 38px);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cell.light {
+  background: #eadfc8;
+  color: #22252a;
+}
+
+.cell.dark {
+  background: #8a6c4e;
+  color: #10131a;
+}
+
+.piece {
+  position: absolute;
+  inset: 6%;
+  display: block;
+  pointer-events: none;
+}
+
+.piece svg,
+.piece img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.piece-w {
+  color: #ffffff;
+  text-shadow:
+    0 0 2px #000,
+    0 0 2px #000,
+    0 0 3px #000,
+    0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.piece-b {
+  color: #14171d;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.cell.selected {
+  outline: 3px solid #4caf50;
+  outline-offset: -3px;
+}
+
+.cell.move-target::after {
+  content: '';
+  position: absolute;
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: rgba(30, 120, 60, 0.55);
+}
+
+.cell.capture::after {
+  width: 82%;
+  height: 82%;
+  background: transparent;
+  border: 4px solid rgba(180, 40, 40, 0.65);
+}
+
+.cell.last-move {
+  box-shadow: inset 0 0 0 4px rgba(255, 200, 60, 0.45);
+}
+
+.coord {
+  position: absolute;
+  font-size: 9px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.coord.file {
+  right: 3px;
+  bottom: 1px;
+}
+
+.coord.rank {
+  left: 3px;
+  top: 1px;
+}
+
+.panel {
+  width: min(94vw, 460px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.players {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #cfd8e3;
+}
+
+.player {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.player.mine .player-label {
+  font-weight: 700;
+}
+
+.player-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #39414d;
+  border: 1px solid #4a5563;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #eef1f5;
+  flex: none;
+}
+
+.avatar-sm {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
+.people {
+  font-size: 12px;
+  color: #9fb1c7;
+  white-space: nowrap;
+}
+
+.result {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.result.win {
+  background: rgba(72, 160, 96, 0.2);
+  border-color: #48a060;
+  color: #b8f0c8;
+}
+
+.result.lose {
+  background: rgba(190, 80, 80, 0.2);
+  border-color: #be5050;
+  color: #f6c8c8;
+}
+
+.result.draw {
+  background: rgba(150, 160, 175, 0.15);
+  border-color: #6c7a8c;
+  color: #d7dee8;
+}
+
+.role {
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.role.hidden {
+  display: none;
+}
+
+.role.white {
+  background: #eef1f5;
+  color: #1b1d21;
+}
+
+.role.black {
+  background: #0f1217;
+  color: #eef1f5;
+  border: 1px solid #46505f;
+}
+
+.role.spectator {
+  background: #23282f;
+  color: #cfd8e3;
+  border: 1px solid #2f3742;
+  font-weight: 600;
+}
+
+.moves {
+  font-size: 13px;
+  color: #93a3b8;
+  min-height: 18px;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #23282f;
+  border: 1px solid #2f3742;
+}
+
+.seats.hidden {
+  display: none;
+}
+
+.seats-text {
+  font-size: 13px;
+  color: #cfd8e3;
+}
+
+.seats-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #2f3742;
+  background: #252a31;
+  color: #e6ecf4;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.hint {
+  font-size: 12px;
+  color: #7d8798;
+  line-height: 1.4;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #23282f;
+  border: 1px solid #2f3742;
+}
+
+.chat-head {
+  font-size: 12px;
+  color: #cfd8e3;
+  font-weight: 600;
+}
+
+.chat-head .muted {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-empty {
+  font-size: 12px;
+  color: #6c788a;
+}
+
+.chat-msg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #1d2229;
+}
+
+.chat-msg.mine {
+  background: #223428;
+}
+
+.chat-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8fd3a2;
+}
+
+.chat-text {
+  color: #e6ecf4;
+  word-break: break-word;
+}
+
+.chat-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #6c788a;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid #2f3742;
+  background: #1b2027;
+  color: #eef1f5;
+  font-size: 13px;
+}
+
+.chat-form input::placeholder {
+  color: #6c788a;
+}
+
+.chat-form button {
+  flex: none;
+  width: 44px;
+  padding: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.promo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.promo.hidden {
+  display: none;
+}
+
+.promo-box {
+  background: #23282f;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.promo-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.promo-buttons button {
+  font-size: 26px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+}
+
+.float-btn {
+  position: fixed;
+  z-index: 40;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 14px;
+  background: #2f7d4f;
+  color: #eafff2;
+  border: 1px solid #48a060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.float-btn:active {
+  cursor: grabbing;
+}
+
+.float-menu {
+  position: fixed;
+  z-index: 41;
+  min-width: 190px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #20262e;
+  border: 1px solid #3a4450;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.float-menu-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8fa0b5;
+  padding: 6px 10px 8px;
+}
+
+.float-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #e7edf5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.float-menu button:hover {
+  background: #2b333d;
+}
+
+.main-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #1b1d21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.main-menu.hidden {
+  display: none;
+}
+
+.main-menu-card {
+  width: min(100vw - 40px, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #1f242b;
+  border: 1px solid #2f3742;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.main-menu-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mm-btn {
+  padding: 14px 16px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #2f3742;
+  background: #252a31;
+  color: #e6ecf4;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mm-btn:hover {
+  background: #2c333c;
+}
+
+.mm-btn-ghost {
+  background: transparent;
+}
+
+#startMenu .hidden {
+  display: none;
+}
+
+.mm-hint {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #9fb1c7;
+  border-top: 1px solid #2f3742;
+  padding-top: 10px;
+}
+
+.mm-hint.hidden {
+  display: none;
+}
+
+</style>
+    <script>
+window.CHESS_CONFIG = {
+  supabaseUrl: 'https://kjwpksvdnfbccvqsqgdz.supabase.co',
+  supabaseKey: 'sb_publishable_6pHsDR2-QqbaPxzOKLh2Aw__TWSAj1H',
+  table: 'games',
+  botId: 565350240,
+};
+
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="title">♟ Шахматы <span id="gameId" class="muted"></span></div>
+      <div class="bar-right">
+        <div id="people" class="people"></div>
+        <div id="status" class="status">Загружаюсь…</div>
+        <button id="menuBtn" class="dots" type="button" aria-label="меню" title="Меню">☰</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="tables" class="tables hidden"></div>
+      <div id="board" class="board" aria-label="шахматная доска"></div>
+
+      <div class="panel">
+        <div id="role" class="role hidden"></div>
+        <div id="result" class="result hidden"></div>
+        <div id="players" class="players"></div>
+        <div id="seats" class="seats hidden">
+          <div id="seatsText" class="seats-text">Свободно место за чёрных</div>
+          <div class="seats-actions">
+            <button id="takeBlack" type="button">Играть за чёрных</button>
+            <button id="watchOnly" type="button">Смотреть</button>
+          </div>
+        </div>
+        <div id="moves" class="moves"></div>
+        <div class="actions">
+          <button id="copyInvite" type="button">Отправить в чат</button>
+          <button id="flip" type="button">Перевернуть</button>
+          <button id="reset" type="button">Начать заново</button>
+        </div>
+        <div class="actions">
+          <button id="resign" type="button" class="danger">Сдаться</button>
+          <button id="closeTable" type="button">Закрыть стол</button>
+        </div>
+        <div class="chat">
+          <div id="chatHead" class="chat-head">Чат партии <span class="muted">— пишут все, кто за доской</span></div>
+          <div id="chatList" class="chat-list">
+            <div class="chat-empty">Сообщений пока нет</div>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <input id="chatInput" type="text" maxlength="200" placeholder="Написать всем за доской…" autocomplete="off" />
+            <button id="chatSend" type="submit" aria-label="отправить">→</button>
+          </form>
+        </div>
+        <div id="hint" class="hint">
+          Тапни фигуру, потом клетку. Играть можно только вдвоём в этом чате.
+        </div>
+      </div>
+    </main>
+
+    <div id="startMenu" class="main-menu">
+      <div class="main-menu-card">
+        <div id="startStepMode">
+          <div class="main-menu-title">С кем играем?</div>
+          <button id="startHuman" class="mm-btn" type="button">👤 С человеком</button>
+          <button id="startBot" class="mm-btn" type="button">🤖 С ботом</button>
+          <div class="mm-hint">Человек — партия в этом чате, второй заходит с телефона. Бот — играешь один, он отвечает сам.</div>
+        </div>
+        <div id="startStepLevel" class="hidden">
+          <div class="main-menu-title">Сложность бота</div>
+          <button class="mm-btn start-level" data-level="easy" type="button">Лёгкий</button>
+          <button class="mm-btn start-level" data-level="mid" type="button">Средний</button>
+          <button class="mm-btn start-level" data-level="hard" type="button">Гроссмейстер</button>
+          <button class="mm-btn mm-btn-ghost" data-back="mode" type="button">← Назад</button>
+        </div>
+        <div id="startStepSide" class="hidden">
+          <div class="main-menu-title">За кого играешь?</div>
+          <button class="mm-btn start-side" data-side="w" type="button">♔ Я белые</button>
+          <button class="mm-btn start-side" data-side="b" type="button">♚ Я чёрные</button>
+          <button class="mm-btn mm-btn-ghost" data-back="level" type="button">← Назад</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mainMenu" class="main-menu hidden">
+      <div class="main-menu-card">
+        <div class="main-menu-title">Меню</div>
+        <button id="mmChess" class="mm-btn" type="button">♟ Шахматы</button>
+        <button id="mmBet" class="mm-btn" type="button">🎲 Предложить спор</button>
+        <button id="mmDebts" class="mm-btn" type="button">🍺 Долги</button>
+        <button id="mmRules" class="mm-btn mm-btn-ghost" type="button">ℹ Правила</button>
+        <div id="mmHint" class="mm-hint hidden"></div>
+      </div>
+    </div>
+
+    <div id="promo" class="promo hidden">
+      <div class="promo-box">
+        <div>Превращение пешки:</div>
+        <div class="promo-buttons">
+          <button data-piece="q" type="button">♕</button>
+          <button data-piece="r" type="button">♖</button>
+          <button data-piece="b" type="button">♗</button>
+          <button data-piece="n" type="button">♘</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rules" class="rules hidden">
+      <div class="rules-card">
+        <div class="rules-head">
+          <div class="rules-title">Правила шахмат</div>
+          <button id="rulesClose" class="rules-close" type="button" aria-label="закрыть">×</button>
+        </div>
+        <div class="rules-body">
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Цель игры</b>
+              <p>Шахматы играют двое: один белыми, другой чёрными. Ходят по очереди, белые начинают. Задача — поставить мат королю соперника: ему угрожают, а спрятаться некуда. Победа — это мат, а не съеденный король: короля не снимают с доски никогда.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d2":"♙"}' data-marks="d3 d4" data-hits="c3 e3"></div>
+            <div class="rules-text">
+              <b>Пешка</b>
+              <p>Идёт только вперёд на одну клетку. Со стартовой позиции может прыгнуть сразу на две — вперёд, через клетку. Бьёт по-другому: по диагонали на одну клетку вперёд. Назад не ходит и не бьёт. Дошла до последней горизонтали — превращается в любую фигуру, чаще всего в ферзя.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"g1":"♘"}' data-marks="e2 f3 h3"></div>
+            <div class="rules-text">
+              <b>Конь</b>
+              <p>Ходит буквой «Г»: на две клетки в одну сторону и на одну вбок. Через фигуры перепрыгивает — свои и чужие ему не мешают. Бьёт ровно так же, как ходит. С угла поля у коня два хода, из центра — восемь.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"c1":"♗"}' data-marks="b2 a3 d2 e3 f4 g5 h6"></div>
+            <div class="rules-text">
+              <b>Слон</b>
+              <p>Ходит по диагонали на любое расстояние, пока путь свободен. Своя или чужая фигура на пути — дальше не идёт. У каждого слона свой цвет: один всю партию ходит по белым клеткам, другой по чёрным.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d4":"♖"}' data-marks="d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4"></div>
+            <div class="rules-text">
+              <b>Ладья</b>
+              <p>Ходит по прямой — по горизонтали и по вертикали — на любое расстояние до первой фигуры. Через фигуры не перепрыгивает. Ладья сильна на открытых линиях: там ей есть куда разгуляться.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d4":"♕"}' data-marks="d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4 a1 b2 c3 e5 f6 g7 h8 a7 b6 c5 e3 f2 g1"></div>
+            <div class="rules-text">
+              <b>Ферзь</b>
+              <p>Самая сильная фигура: ходит как ладья и как слон сразу — по прямым и по диагоналям на любое расстояние. Через фигуры не перепрыгивает. Ферзя легко подставить под удар, поэтому его берегут до решающего момента.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e1":"♔"}' data-marks="d1 d2 e2 f1 f2"></div>
+            <div class="rules-text">
+              <b>Король</b>
+              <p>Ходит на одну клетку в любую сторону: прямо или по диагонали. Под удар его ставить нельзя — такой ход запрещён. Если королю угрожают, это шах: нужно сразу закрыться, уйти или съесть нападающего. Спастись нельзя — это мат.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e1":"♔","h1":"♖"}' data-marks="f1 g1"></div>
+            <div class="rules-text">
+              <b>Рокировка</b>
+              <p>Один раз за партию король и ладья меняются местами: король прыгает на две клетки в сторону ладьи, ладья встаёт рядом с ним. Условия: король и эта ладья ещё не ходили, между ними пусто, королю не шахуют и через поле под ударом он не проходит.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"d5":"♙","e5":"♟"}' data-hits="e6"></div>
+            <div class="rules-text">
+              <b>Взятие на проходе</b>
+              <p>Если пешка соперника проскочила мимо вашей на две клетки, её можно побить «на проходе» — сразу следующим ходом, будто она прошла только одну клетку. Право действует один ход: не использовали — оно сгорело.</p>
+            </div>
+          </div>
+
+          <div class="rules-item">
+            <div class="diagram" data-diagram data-pieces='{"e7":"♙"}' data-marks="e8"></div>
+            <div class="rules-text">
+              <b>Превращение</b>
+              <p>Пешка, дошедшая до восьмой горизонтали, превращается в ферзя, ладью, слона или коня — на выбор игрока. В этом приложении окно выбора появляется само.</p>
+            </div>
+          </div>
+
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Шах, мат и ничья</b>
+              <p>Шах — королю угрожает фигура. Мат — шах, от которого нельзя спастись, партия кончена. Пат — ходов нет, но шаха тоже нет: это ничья. Ещё ничья бывает при вечном повторении позиции, по договорённости и когда фигур слишком мало, чтобы поставить мат.</p>
+            </div>
+          </div>
+
+          <div class="rules-item rules-goal">
+            <div class="rules-text">
+              <b>Столы и как играть здесь</b>
+              <p>В чате можно держать несколько партий: каждая со своим номером («Стол #2»), над доской переключаешься между ними. Один игрок белыми, второй жмёт «Играть за чёрных», остальные смотрят. Тапни свою фигуру — зелёные точки покажут, куда можно пойти, красная рамка — кого можно съесть. Второй тап делает ход, и он сразу появляется у соперника.</p>
+            </div>
+          </div>
+
+          <div class="rules-credit">Фигуры: набор Colin M.L. Burnett, CC BY-SA 3.0</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+/* bundle v28 */
+// Фигуры: набор Colin M.L. Burnett (lichess), CC BY-SA 3.0
+const PIECE_IMAGES = {
+  wK: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path stroke-linejoin=\"miter\" d=\"M22.5 11.63V6M20 8h5\"/><path fill=\"#fff\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\" d=\"M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5\"/><path fill=\"#fff\" d=\"M11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10z\"/><path d=\"M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0\"/></g></svg>",
+  wQ: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"#fff\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path d=\"M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0m16.5-4.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0M41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0M16 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0M33 9a2 2 0 1 1-4 0 2 2 0 1 1 4 0\"/><path stroke-linecap=\"butt\" d=\"M9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-14V25L7 14z\"/><path stroke-linecap=\"butt\" d=\"M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z\"/><path fill=\"none\" d=\"M11.5 30c3.5-1 18.5-1 22 0M12 33.5c6-1 15-1 21 0\"/></g></svg>",
+  wR: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"#fff\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path stroke-linecap=\"butt\" d=\"M9 39h27v-3H9zm3-3v-4h21v4zm-1-22V9h4v2h5V9h5v2h5V9h4v5\"/><path d=\"m34 14-3 3H14l-3-3\"/><path stroke-linecap=\"butt\" stroke-linejoin=\"miter\" d=\"M31 17v12.5H14V17\"/><path d=\"m31 29.5 1.5 2.5h-20l1.5-2.5\"/><path fill=\"none\" stroke-linejoin=\"miter\" d=\"M11 14h23\"/></g></svg>",
+  wB: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><g fill=\"#fff\" stroke-linecap=\"butt\"><path d=\"M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.94 3-2 3-2z\"/><path d=\"M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z\"/><path d=\"M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z\"/></g><path stroke-linejoin=\"miter\" d=\"M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5\"/></g></svg>",
+  wN: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path fill=\"#fff\" d=\"M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21\"/><path fill=\"#fff\" d=\"M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3\"/><path fill=\"#000\" d=\"M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0m5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5\"/></g></svg>",
+  wP: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><path fill=\"#fff\" stroke=\"#000\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z\"/></svg>",
+  bK: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path stroke-linejoin=\"miter\" d=\"M22.5 11.6V6\"/><path fill=\"#000\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\" d=\"M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5\"/><path fill=\"#000\" d=\"M11.5 37a22.3 22.3 0 0 0 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10z\"/><path stroke-linejoin=\"miter\" d=\"M20 8h5\"/><path stroke=\"#ececec\" d=\"M32 29.5s8.5-4 6-9.7C34.1 14 25 18 22.5 24.6v2.1-2.1C20 18 9.9 14 7 19.9c-2.5 5.6 4.8 9 4.8 9\"/><path stroke=\"#ececec\" d=\"M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0\"/></g></svg>",
+  bQ: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><g stroke=\"none\"><circle cx=\"6\" cy=\"12\" r=\"2.75\"/><circle cx=\"14\" cy=\"9\" r=\"2.75\"/><circle cx=\"22.5\" cy=\"8\" r=\"2.75\"/><circle cx=\"31\" cy=\"9\" r=\"2.75\"/><circle cx=\"39\" cy=\"12\" r=\"2.75\"/></g><path stroke-linecap=\"butt\" d=\"M9 26c8.5-1.5 21-1.5 27 0l2.5-12.5L31 25l-.3-14.1-5.2 13.6-3-14.5-3 14.5-5.2-13.6L14 25 6.5 13.5z\"/><path stroke-linecap=\"butt\" d=\"M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z\"/><path fill=\"none\" stroke-linecap=\"butt\" d=\"M11 38.5a35 35 1 0 0 23 0\"/><path fill=\"none\" stroke=\"#ececec\" d=\"M11 29a35 35 1 0 1 23 0m-21.5 2.5h20m-21 3a35 35 1 0 0 22 0m-23 3a35 35 1 0 0 24 0\"/></g></svg>",
+  bR: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path stroke-linecap=\"butt\" d=\"M9 39h27v-3H9zm3.5-7 1.5-2.5h17l1.5 2.5zm-.5 4v-4h21v4z\"/><path stroke-linecap=\"butt\" stroke-linejoin=\"miter\" d=\"M14 29.5v-13h17v13z\"/><path stroke-linecap=\"butt\" d=\"M14 16.5 11 14h23l-3 2.5zM11 14V9h4v2h5V9h5v2h5V9h4v5z\"/><path fill=\"none\" stroke=\"#ececec\" stroke-linejoin=\"miter\" stroke-width=\"1\" d=\"M12 35.5h21m-20-4h19m-18-2h17m-17-13h17M11 14h23\"/></g></svg>",
+  bB: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><g fill=\"#000\" stroke-linecap=\"butt\"><path d=\"M9 36c3.4-1 10.1.4 13.5-2 3.4 2.4 10.1 1 13.5 2 0 0 1.6.5 3 2-.7 1-1.6 1-3 .5-3.4-1-10.1.5-13.5-1-3.4 1.5-10.1 0-13.5 1-1.4.5-2.3.5-3-.5 1.4-2 3-2 3-2z\"/><path d=\"M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z\"/><path d=\"M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z\"/></g><path stroke=\"#ececec\" stroke-linejoin=\"miter\" d=\"M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5\"/></g></svg>",
+  bN: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><g fill=\"none\" fill-rule=\"evenodd\" stroke=\"#000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"><path fill=\"#000\" d=\"M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21\"/><path fill=\"#000\" d=\"M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.04-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-1-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-2 2.5-3c1 0 1 3 1 3\"/><path fill=\"#ececec\" stroke=\"#ececec\" d=\"M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0m5.43-9.75a.5 1.5 30 1 1-.86-.5.5 1.5 30 1 1 .86.5\"/><path fill=\"#ececec\" stroke=\"none\" d=\"m24.55 10.4-.45 1.45.5.15c3.15 1 5.65 2.49 7.9 6.75S35.75 29.06 35.25 39l-.05.5h2.25l.05-.5c.5-10.06-.88-16.85-3.25-21.34s-5.79-6.64-9.19-7.16z\"/></g></svg>",
+  bP: "<svg xmlns=\"http://www.w3.org/2000/svg\" style=\"color-scheme:light only\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\"><path stroke=\"#000\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z\"/></svg>",
+};
+
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+const KNIGHT = [
+  [1, 2],
+  [2, 1],
+  [2, -1],
+  [1, -2],
+  [-1, -2],
+  [-2, -1],
+  [-2, 1],
+  [-1, 2],
+];
+const BISHOP = [
+  [1, 1],
+  [1, -1],
+  [-1, 1],
+  [-1, -1],
+];
+const ROOK = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const KING = [...BISHOP, ...ROOK];
+
+function isWhite(piece) {
+  return Boolean(piece) && piece === piece.toUpperCase();
+}
+
+function colorOf(piece) {
+  if (!piece) return null;
+  return isWhite(piece) ? 'w' : 'b';
+}
+
+function squareName(index) {
+  return `${FILES[index % 8]}${Math.floor(index / 8) + 1}`;
+}
+
+function squareIndex(name) {
+  const clean = String(name).toLowerCase().trim().replace(/ё/g, 'е');
+  const file = 'abcdefgh'.indexOf(clean[0]);
+  const rank = Number(clean[1]);
+  if (file < 0 || !rank || rank < 1 || rank > 8) return -1;
+  return file + (rank - 1) * 8;
+}
+
+class Board {
+  constructor(fen = START) {
+    this.load(fen);
+  }
+
+  load(fen) {
+    const [placement, turn, castling, enPassant, halfmove, fullmove] = String(fen).trim().split(/\s+/);
+    this.squares = new Array(64).fill(null);
+
+    let index = 56;
+    let file = 0;
+    for (const char of placement) {
+      if (char === '/') {
+        index -= 16;
+        file = 0;
+        continue;
+      }
+      if (/\d/.test(char)) {
+        file += Number(char);
+        index += Number(char);
+        continue;
+      }
+      this.squares[index] = char;
+      index += 1;
+      file += 1;
+    }
+
+    this.turn = turn === 'b' ? 'b' : 'w';
+    this.castling = castling && castling !== '-' ? castling : '';
+    this.enPassant = enPassant && enPassant !== '-' ? squareIndex(enPassant) : -1;
+    this.halfmove = Number(halfmove ?? 0);
+    this.fullmove = Number(fullmove ?? 1);
+  }
+
+  clone() {
+    const copy = new Board(START);
+    copy.squares = this.squares.slice();
+    copy.turn = this.turn;
+    copy.castling = this.castling;
+    copy.enPassant = this.enPassant;
+    copy.halfmove = this.halfmove;
+    copy.fullmove = this.fullmove;
+    return copy;
+  }
+
+  at(index) {
+    return this.squares[index] ?? null;
+  }
+
+  kingIndex(color) {
+    const target = color === 'w' ? 'K' : 'k';
+    return this.squares.indexOf(target);
+  }
+
+  attacked(index, byColor) {
+    const [file, rank] = [index % 8, Math.floor(index / 8)];
+
+    for (const [df, dr] of KNIGHT) {
+      const f = file + df;
+      const r = rank + dr;
+      if (f < 0 || f > 7 || r < 0 || r > 7) continue;
+      const piece = this.at(f + r * 8);
+      if (piece && colorOf(piece) === byColor && piece.toLowerCase() === 'n') return true;
+    }
+
+    const pawnDir = byColor === 'w' ? -1 : 1;
+    for (const df of [-1, 1]) {
+      const f = file + df;
+      const r = rank + pawnDir;
+      if (f < 0 || f > 7 || r < 0 || r > 7) continue;
+      const piece = this.at(f + r * 8);
+      if (piece && colorOf(piece) === byColor && piece.toLowerCase() === 'p') return true;
+    }
+
+    for (const [df, dr] of KING) {
+      const f = file + df;
+      const r = rank + dr;
+      if (f < 0 || f > 7 || r < 0 || r > 7) continue;
+      const piece = this.at(f + r * 8);
+      if (piece && colorOf(piece) === byColor && piece.toLowerCase() === 'k') return true;
+    }
+
+    const slider = (directions, types) => {
+      for (const [df, dr] of directions) {
+        let f = file + df;
+        let r = rank + dr;
+        while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
+          const piece = this.at(f + r * 8);
+          if (piece) {
+            if (colorOf(piece) === byColor && types.includes(piece.toLowerCase())) return true;
+            break;
+          }
+          f += df;
+          r += dr;
+        }
+      }
+      return false;
+    };
+
+    return slider(BISHOP, ['b', 'q']) || slider(ROOK, ['r', 'q']);
+  }
+
+  inCheck(color = this.turn) {
+    const king = this.kingIndex(color);
+    if (king < 0) return false;
+    return this.attacked(king, color === 'w' ? 'b' : 'w');
+  }
+
+  movesFrom(index, { ignoreCheck = false } = {}) {
+    const piece = this.at(index);
+    if (!piece) return [];
+    const color = colorOf(piece);
+    const type = piece.toLowerCase();
+    const moves = [];
+    const [file, rank] = [index % 8, Math.floor(index / 8)];
+
+    const push = (target, extra = {}) => {
+      const captured = this.at(target);
+      if (captured && colorOf(captured) === color) return false;
+      moves.push({ from: index, to: target, piece, captured, ...extra });
+      return !captured;
+    };
+
+    if (type === 'p') {
+      const dir = color === 'w' ? 1 : -1;
+      const startRank = color === 'w' ? 1 : 6;
+      const promoRank = color === 'w' ? 7 : 0;
+
+      const one = index + dir * 8;
+      if (rank + dir >= 0 && rank + dir <= 7 && !this.at(one)) {
+        if (Math.floor(one / 8) === promoRank) {
+          for (const promo of ['q', 'r', 'b', 'n']) moves.push({ from: index, to: one, piece, captured: null, promotion: promo });
+        } else {
+          moves.push({ from: index, to: one, piece, captured: null });
+          const two = index + dir * 16;
+          if (rank === startRank && !this.at(two)) moves.push({ from: index, to: two, piece, captured: null });
+        }
+      }
+
+      for (const df of [-1, 1]) {
+        const f = file + df;
+        if (f < 0 || f > 7) continue;
+        const target = f + (rank + dir) * 8;
+        const victim = this.at(target);
+        if (victim && colorOf(victim) !== color) {
+          if (Math.floor(target / 8) === promoRank) {
+            for (const promo of ['q', 'r', 'b', 'n']) moves.push({ from: index, to: target, piece, captured: victim, promotion: promo });
+          } else {
+            moves.push({ from: index, to: target, piece, captured: victim });
+          }
+        } else if (!victim && target === this.enPassant) {
+          moves.push({ from: index, to: target, piece, captured: color === 'w' ? 'p' : 'P', enPassant: true });
+        }
+      }
+    } else if (type === 'n' || type === 'k') {
+      const steps = type === 'n' ? KNIGHT : KING;
+      for (const [df, dr] of steps) {
+        const f = file + df;
+        const r = rank + dr;
+        if (f < 0 || f > 7 || r < 0 || r > 7) continue;
+        push(f + r * 8);
+      }
+
+      if (type === 'k') {
+        const right = color === 'w' ? 'K' : 'k';
+        const queenSide = color === 'w' ? 'Q' : 'q';
+        const homeRank = color === 'w' ? 0 : 7;
+
+        if (this.castling.includes(right) && index === homeRank * 8 + 4) {
+          const rook = color === 'w' ? 'R' : 'r';
+          if (
+            this.at(homeRank * 8 + 5) === null &&
+            this.at(homeRank * 8 + 6) === null &&
+            this.at(homeRank * 8 + 7) === rook &&
+            !this.attacked(homeRank * 8 + 4, color === 'w' ? 'b' : 'w') &&
+            !this.attacked(homeRank * 8 + 5, color === 'w' ? 'b' : 'w') &&
+            !this.attacked(homeRank * 8 + 6, color === 'w' ? 'b' : 'w')
+          ) {
+            moves.push({ from: index, to: homeRank * 8 + 6, piece, captured: null, castle: 'king' });
+          }
+        }
+
+        if (this.castling.includes(queenSide) && index === homeRank * 8 + 4) {
+          const rook = color === 'w' ? 'R' : 'r';
+          if (
+            this.at(homeRank * 8 + 3) === null &&
+            this.at(homeRank * 8 + 2) === null &&
+            this.at(homeRank * 8 + 1) === null &&
+            this.at(homeRank * 8) === rook &&
+            !this.attacked(homeRank * 8 + 4, color === 'w' ? 'b' : 'w') &&
+            !this.attacked(homeRank * 8 + 3, color === 'w' ? 'b' : 'w') &&
+            !this.attacked(homeRank * 8 + 2, color === 'w' ? 'b' : 'w')
+          ) {
+            moves.push({ from: index, to: homeRank * 8 + 2, piece, captured: null, castle: 'queen' });
+          }
+        }
+      }
+    } else {
+      const directions = type === 'b' ? BISHOP : type === 'r' ? ROOK : KING;
+      for (const [df, dr] of directions) {
+        let f = file + df;
+        let r = rank + dr;
+        while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
+          const target = f + r * 8;
+          const stopped = !push(target);
+          if (stopped) break;
+          f += df;
+          r += dr;
+        }
+      }
+    }
+
+    if (ignoreCheck) return moves;
+    return moves.filter((move) => {
+      const next = this.apply(move, { silent: true });
+      return !next.inCheck(color);
+    });
+  }
+
+  legalMoves(color = this.turn) {
+    const moves = [];
+    for (let index = 0; index < 64; index += 1) {
+      const piece = this.at(index);
+      if (!piece || colorOf(piece) !== color) continue;
+      moves.push(...this.movesFrom(index));
+    }
+    return moves;
+  }
+
+  apply(move, { silent = false } = {}) {
+    const next = silent ? this.clone() : this;
+    const { from, to, piece, promotion, enPassant } = move;
+    const color = colorOf(piece);
+
+    next.squares[to] = promotion ? (color === 'w' ? promotion.toUpperCase() : promotion) : piece;
+    next.squares[from] = null;
+
+    if (enPassant) {
+      const victimIndex = color === 'w' ? to - 8 : to + 8;
+      next.squares[victimIndex] = null;
+    }
+
+    if (move.castle === 'king') {
+      next.squares[from + 1] = next.squares[from + 3];
+      next.squares[from + 3] = null;
+    } else if (move.castle === 'queen') {
+      next.squares[from - 1] = next.squares[from - 4];
+      next.squares[from - 4] = null;
+    }
+
+    if (piece.toLowerCase() === 'p' && Math.abs(to - from) === 16) {
+      next.enPassant = (from + to) / 2;
+    } else {
+      next.enPassant = -1;
+    }
+
+    const strip = (flag) => {
+      next.castling = next.castling.replace(flag, '');
+    };
+
+    if (piece === 'K') {
+      strip('K');
+      strip('Q');
+    } else if (piece === 'k') {
+      strip('k');
+      strip('q');
+    }
+    if (piece === 'R' && from === 0) strip('Q');
+    if (piece === 'R' && from === 7) strip('K');
+    if (piece === 'r' && from === 56) strip('q');
+    if (piece === 'r' && from === 63) strip('k');
+    if (to === 0) strip('Q');
+    if (to === 7) strip('K');
+    if (to === 56) strip('q');
+    if (to === 63) strip('k');
+
+    next.halfmove = piece.toLowerCase() === 'p' || move.captured ? 0 : next.halfmove + 1;
+    if (color === 'b') next.fullmove += 1;
+    next.turn = color === 'w' ? 'b' : 'w';
+    return next;
+  }
+
+  status() {
+    const legal = this.legalMoves();
+    const check = this.inCheck(this.turn);
+
+    if (!legal.length) {
+      return { over: true, winner: check ? (this.turn === 'w' ? 'b' : 'w') : null, check, reason: check ? 'mate' : 'stalemate' };
+    }
+    return { over: false, winner: null, check, reason: check ? 'check' : null };
+  }
+
+  fen() {
+    const rows = [];
+    for (let rank = 7; rank >= 0; rank -= 1) {
+      let row = '';
+      let empty = 0;
+      for (let file = 0; file < 8; file += 1) {
+        const piece = this.at(file + rank * 8);
+        if (!piece) {
+          empty += 1;
+          continue;
+        }
+        if (empty) {
+          row += empty;
+          empty = 0;
+        }
+        row += piece;
+      }
+      if (empty) row += empty;
+      rows.push(row);
+    }
+
+    const castling = this.castling || '-';
+    const enPassant = this.enPassant >= 0 ? squareName(this.enPassant) : '-';
+    return `${rows.join('/')} ${this.turn} ${castling} ${enPassant} ${this.halfmove} ${this.fullmove}`;
+  }
+}
+
+function parseMove(board, input) {
+  const text = String(input)
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[её]/g, 'e')
+    .replace(/[т]/g, 't')
+    .replace(/[хx×]/g, 'x')
+    .replace(/[–—−]/g, '-')
+    .replace(/[^a-h0-9\-=knrqбокс/]/g, '')
+    .replace(/\s+/g, '');
+
+  const latin = String(input)
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[а]/g, 'a')
+    .replace(/[б]/g, 'b')
+    .replace(/[ц]/g, 'c')
+    .replace(/[д]/g, 'd')
+    .replace(/[её]/g, 'e')
+    .replace(/[ф]/g, 'f')
+    .replace(/[г]/g, 'g')
+    .replace(/[х]/g, 'h')
+    .replace(/\s+/g, '');
+
+  const clean = text || latin;
+  const match = clean.match(/^([a-h][1-8])[-x]?([a-h][1-8])([qrbn])?$/);
+  if (!match) return null;
+
+  const from = squareIndex(match[1]);
+  const to = squareIndex(match[2]);
+  if (from < 0 || to < 0) return null;
+
+  const candidates = board.movesFrom(from).filter((move) => move.to === to);
+  if (!candidates.length) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  const promotion = match[3];
+  if (promotion) return candidates.find((move) => move.promotion === promotion) ?? candidates[0];
+  return candidates.find((move) => move.promotion === 'q') ?? candidates[0];
+}
+
+{ START, squareName, squareIndex, isWhite, colorOf };
+
+
+
+const GLYPH_LETTER = {
+  '♟': 'p', '♜': 'r', '♞': 'n', '♝': 'b', '♛': 'q', '♚': 'k',
+  '♙': 'p', '♖': 'r', '♘': 'n', '♗': 'b', '♕': 'q', '♔': 'k',
+};
+const GLYPH_IS_WHITE = { '♙': true, '♖': true, '♘': true, '♗': true, '♕': true, '♔': true };
+
+function pieceImage(piece) {
+  const white = piece === String(piece).toUpperCase();
+  const letter = GLYPH_LETTER[piece] ?? String(piece).toLowerCase();
+  const name = `${white ? 'w' : 'b'}${letter.toUpperCase()}`;
+  const svg = PIECE_IMAGES[name] ?? PIECE_IMAGES.wP;
+  const uri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `<img src="${uri}" alt="" draggable="false">`;
+}
+
+const boardEl = document.getElementById('board');
+const tablesEl = document.getElementById('tables');
+const roleEl = document.getElementById('role');
+const resultEl = document.getElementById('result');
+const statusEl = document.getElementById('status');
+const gameIdEl = document.getElementById('gameId');
+const playersEl = document.getElementById('players');
+const movesEl = document.getElementById('moves');
+const hintEl = document.getElementById('hint');
+const promoEl = document.getElementById('promo');
+const seatsEl = document.getElementById('seats');
+const seatsTextEl = document.getElementById('seatsText');
+const takeBlackEl = document.getElementById('takeBlack');
+const watchOnlyEl = document.getElementById('watchOnly');
+const menuBtn = document.getElementById('menuBtn');
+const peopleEl = document.getElementById('people');
+const rulesEl = document.getElementById('rules');
+const rulesClose = document.getElementById('rulesClose');
+
+const FILE_NAMES = 'abcdefgh';
+const APP_VERSION = '28';
+const PIECE_FONT = "font-family:'Noto Sans Symbols 2','Noto Sans Symbols','Segoe UI Symbol','DejaVu Sans',serif;font-variant-emoji:text;";
+const PIECE_STYLE_WHITE = `${PIECE_FONT}color:#ffffff;-webkit-text-stroke:1.2px #10131a;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.85)`;
+const PIECE_STYLE_BLACK = `${PIECE_FONT}color:#0d1015;-webkit-text-stroke:1.2px #f4f6fa;text-shadow:0 0 2px rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.5)`;
+
+const MOJIBAKE = /Р[СџЎћ]|С[‚ѓ„…†‡€]|РµР|С‚Р|С‡Р|С€Р|РѕР|РїС|РёР/;
+
+function looksBrokenHtml() {
+  const samples = [
+    document.querySelector('.title')?.textContent ?? '',
+    document.getElementById('takeBlack')?.textContent ?? '',
+    document.querySelector('.rules-title')?.textContent ?? '',
+    document.getElementById('chatInput')?.getAttribute('placeholder') ?? '',
+    document.getElementById('chatHead')?.textContent ?? '',
+  ];
+  return samples.some((sample) => MOJIBAKE.test(sample));
+}
+
+function healStaleHtml() {
+  try {
+    const meta = document.querySelector('meta[name="chess-version"]');
+    const pageVersion = meta?.getAttribute('content') ?? '';
+    const stale = looksBrokenHtml() || pageVersion !== APP_VERSION;
+    if (!stale) return;
+    if (sessionStorage.getItem('chess-heal') === '1') return;
+    sessionStorage.setItem('chess-heal', '1');
+    const url = new URL(location.href);
+    url.searchParams.set('fresh', String(Date.now()));
+    location.replace(url.toString());
+  } catch {
+    /* не смогли — работаем как есть */
+  }
+}
+
+healStaleHtml();
+
+function paintDiagrams() {
+  for (const el of document.querySelectorAll('[data-diagram]')) {
+    if (el.dataset.painted) continue;
+    el.dataset.painted = '1';
+    let pieces = {};
+    try {
+      pieces = JSON.parse(el.dataset.pieces || '{}');
+    } catch {
+      pieces = {};
+    }
+    const marks = new Set((el.dataset.marks || '').split(/\s+/).filter(Boolean));
+    const hits = new Set((el.dataset.hits || '').split(/\s+/).filter(Boolean));
+    const cells = [];
+    for (let index = 0; index < 64; index += 1) {
+      const file = index % 8;
+      const rank = Math.floor(index / 8);
+      const name = `${FILE_NAMES[file]}${rank + 1}`;
+      const isLight = (rank + file) % 2 === 1;
+      const classes = ['dg-sq', isLight ? 'light' : 'dark'];
+      const raw = pieces[name];
+      if (raw) classes.push('src');
+      if (!raw && marks.has(name)) classes.push('mark');
+      if (!raw && hits.has(name)) classes.push('hit');
+      let inner = '';
+      if (raw) {
+        const white = Boolean(GLYPH_IS_WHITE[raw]);
+        const letter = GLYPH_LETTER[raw] ?? 'p';
+        inner = `<span class="piece ${white ? 'piece-w' : 'piece-b'}">${pieceImage(white ? letter.toUpperCase() : letter)}</span>`;
+      }
+      cells.push(`<div class="${classes.join(' ')}">${inner}</div>`);
+    }
+    el.innerHTML = cells.join('');
+  }
+}
+
+function openRules() {
+  paintDiagrams();
+  rulesEl.classList.remove('hidden');
+  rulesEl.querySelector('.rules-body').scrollTop = 0;
+}
+
+function closeRules() {
+  rulesEl.classList.add('hidden');
+}
+
+const mainMenuEl = document.getElementById('mainMenu');
+const mmHintEl = document.getElementById('mmHint');
+
+function openMainMenu() {
+  if (!mainMenuEl) return;
+  mainMenuEl.classList.remove('hidden');
+}
+
+function closeMainMenu() {
+  if (!mainMenuEl) return;
+  mainMenuEl.classList.add('hidden');
+}
+
+function showMenuHint(text) {
+  if (!mmHintEl) return;
+  mmHintEl.textContent = text;
+  mmHintEl.classList.remove('hidden');
+}
+
+menuBtn.addEventListener('click', () => {
+  if (mainMenuEl && !mainMenuEl.classList.contains('hidden')) closeMainMenu();
+  else openMainMenu();
+});
+
+document.getElementById('mmChess')?.addEventListener('click', () => {
+  closeMainMenu();
+  hintEl.textContent = 'Играй: жми на свою фигуру, потом на клетку. Соперника зови кнопкой «Отправить в чат».';
+});
+
+document.getElementById('mmBet')?.addEventListener('click', () => {
+  showMenuHint('Спор открывается в чате: напиши «спор Локо-Динамо» или «спор Серёга против Лёхи» — бот пришлёт карточку со ставками.');
+});
+
+document.getElementById('mmDebts')?.addEventListener('click', () => {
+  showMenuHint('Долги: напиши в чат «долги» — бот ответит, кто кому проставляется.');
+});
+
+document.getElementById('mmRules')?.addEventListener('click', () => {
+  closeMainMenu();
+  openRules();
+});
+
+rulesClose.addEventListener('click', closeRules);
+rulesEl.addEventListener('click', (event) => {
+  if (event.target === rulesEl) closeRules();
+});
+
+let myRole = 'free';
+let roleOrientation = null;
+let offerSeat = false;
+
+const webApp = window.WebApp;
+const initData = webApp?.initData ?? '';
+const unsafe = webApp?.initDataUnsafe ?? null;
+
+let game = null;
+let localMode = false;
+let board = new Board();
+let flipped = false;
+let selected = null;
+let legal = [];
+let pendingPromotion = null;
+let busy = false;
+
+function myId() {
+  return unsafe?.user?.id ?? Number(new URLSearchParams(location.search).get('user') ?? 0);
+}
+
+function myChat() {
+  return unsafe?.chat?.id ?? Number(new URLSearchParams(location.search).get('chat') ?? 0);
+}
+
+async function api(path, payload) {
+  const response = await fetch(path, {
+    method: payload ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload ? JSON.stringify(payload) : undefined,
+  });
+  return response.json();
+}
+
+function myName() {
+  return unsafe?.user?.first_name ?? (new URLSearchParams(location.search).get('name') || 'Игрок');
+}
+
+function myPhoto() {
+  const user = unsafe?.user;
+  const fromUrl = new URLSearchParams(location.search).get('photo') ?? '';
+  return user?.photo_url ?? user?.photo?.url ?? fromUrl;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
+}
+
+const AVATAR_COLORS = ['#3b6ea5', '#8a5a2b', '#4a7c59', '#7a4f8a', '#a5503c', '#3f7d8c', '#8a7a2b', '#5a5a8a'];
+
+function avatarColor(name) {
+  let hash = 0;
+  for (const ch of String(name || '?')) hash = (hash * 31 + ch.codePointAt(0)) % 9973;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function avatarHtml(name, photo, extraClass = '') {
+  const cls = `avatar${extraClass ? ` ${extraClass}` : ''}`;
+  if (photo) return `<img class="${cls}" src="${escapeHtml(photo)}" alt="">`;
+  const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+  return `<span class="${cls} avatar-letter" style="background:${avatarColor(name)}">${escapeHtml(letter)}</span>`;
+}
+
+function signedInit() {
+  if (initData) return initData;
+  const user = { id: myId(), first_name: myName() };
+  const chat = { id: myChat(), type: 'CHAT' };
+  return `auth_date=${Math.floor(Date.now() / 1000)}&user=${encodeURIComponent(JSON.stringify(user))}&chat=${encodeURIComponent(JSON.stringify(chat))}`;
+}
+
+const SAVE_PREFIX = 'chess-max-save-v1';
+
+function saveSlot() {
+  return `${SAVE_PREFIX}:${myChat() || 'local'}:${myId() || 0}`;
+}
+
+function saveGame() {
+  if (!game || !game.fen) return;
+  try {
+    localStorage.setItem(saveSlot(), JSON.stringify({
+      game,
+      flipped,
+      mode: localMode ? 'local' : 'server',
+      savedAt: Date.now(),
+    }));
+  } catch {
+    /* приватный режим или переполнение — играем без сохранения */
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(saveSlot());
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved?.game?.fen) return null;
+    new Board(saved.game.fen);
+    if (!Array.isArray(saved.game.moves)) saved.game.moves = [];
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function clearGame() {
+  try {
+    localStorage.removeItem(saveSlot());
+  } catch {
+    /* нечего чистить */
+  }
+}
+
+const CFG = window.CHESS_CONFIG ?? {};
+let supabaseClient = null;
+let gameRowId = null;
+let cloudMode = false;
+let cloudChannel = null;
+let tables = [];
+
+function cloudReady() {
+  return Boolean(CFG.supabaseUrl && CFG.supabaseKey && window.supabase);
+}
+
+function roomName() {
+  if (myChat()) return `chat-${myChat()}`;
+  if (myId()) return `user-${myId()}`;
+  return 'demo';
+}
+
+function rowToGame(row) {
+  const raw = row.status ?? 'open';
+  const done = raw === 'done' || raw === 'white_won' || raw === 'black_won';
+  const status = raw === 'closed' ? 'closed' : done ? 'done' : 'open';
+  const winner = raw === 'white_won' || (raw === 'done' && row.winner === 'w')
+    ? 'w'
+    : raw === 'black_won' || (raw === 'done' && row.winner === 'b')
+      ? 'b'
+      : null;
+  return {
+    id: 0,
+    fen: row.board_state,
+    moves: Array.isArray(row.moves) ? row.moves : [],
+    status,
+    winner,
+    white: { id: Number(row.white_id ?? 0), name: row.white_name ?? 'Белые', photo: row.white_photo ?? '' },
+    black: { id: Number(row.black_id ?? 0), name: row.black_name ?? 'Чёрные', photo: row.black_photo ?? '' },
+    role: 'white',
+    canMove: true,
+  };
+}
+
+function roleOf(row) {
+  const me = myId();
+  if (!me) return 'free';
+  const whiteId = Number(row.white_id ?? 0);
+  const blackId = Number(row.black_id ?? 0);
+  if (whiteId && me === whiteId) return 'white';
+  if (blackId && me === blackId) return 'black';
+  return 'spectator';
+}
+
+function canMoveNow() {
+  if (!game || game.status !== 'open' || busy) return false;
+  if (myRole === 'free') return true;
+  if (myRole === 'spectator') return false;
+  return (myRole === 'white') === (board.turn === 'w');
+}
+
+function applyRow(row) {
+  if (!row?.board_state) return;
+  try {
+    new Board(row.board_state);
+  } catch {
+    return;
+  }
+  const role = roleOf(row);
+  if (role !== roleOrientation) {
+    roleOrientation = role;
+    if (role === 'black') flipped = true;
+    else if (role === 'white') flipped = false;
+  }
+  myRole = role;
+  offerSeat = role === 'spectator' && !Number(row.black_id ?? 0);
+  game = rowToGame(row);
+  render();
+  setChatLocked(game.status !== 'open');
+  if ((game.status === 'done' || game.status === 'closed') && clearedForGame !== gameRowId) {
+    clearedForGame = gameRowId;
+    clearChat();
+  }
+  if (game.status === 'open' && clearedForGame === gameRowId) clearedForGame = null;
+  saveGame();
+}
+
+function tableSlot() {
+  return `${SAVE_PREFIX}:table:${myChat() || 'local'}:${myId() || 0}`;
+}
+
+function savedTableId() {
+  try {
+    return localStorage.getItem(tableSlot());
+  } catch {
+    return null;
+  }
+}
+
+function rememberTable(id) {
+  try {
+    if (id) localStorage.setItem(tableSlot(), String(id));
+  } catch {
+    /* без сохранения выбора */
+  }
+}
+
+async function loadTables() {
+  const name = CFG.table || 'games';
+  const byNo = await supabaseClient
+    .from(name)
+    .select('*')
+    .eq('room', roomName())
+    .order('game_no', { ascending: false });
+  if (!byNo.error) return byNo.data ?? [];
+
+  const byTime = await supabaseClient
+    .from(name)
+    .select('*')
+    .eq('room', roomName())
+    .order('updated_at', { ascending: false });
+  if (byTime.error) throw new Error(byNo.error.message);
+  return byTime.data ?? [];
+}
+
+function pickTable(rows) {
+  if (!rows?.length) return null;
+  const open = rows.filter((row) => row.status === 'open');
+  const newest = (list) => [...list].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0] ?? null;
+  const pool = open.length ? open : rows;
+  const saved = savedTableId();
+  const bySaved = saved ? pool.find((row) => row.id === saved) : null;
+  if (bySaved) return bySaved;
+  const me = myId();
+  if (me) {
+    const mine = pool.filter((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+    const latest = newest(mine);
+    if (latest) return latest;
+  }
+  return newest(pool);
+}
+
+async function closeMyOpenTables(exceptId) {
+  if (!supabaseClient) return;
+  const me = myId();
+  if (!me) return;
+  const stale = tables.filter((row) => row.id !== exceptId
+    && row.status === 'open'
+    && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me));
+  for (const row of stale) {
+    try {
+      await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ status: 'closed', updated_at: new Date().toISOString() })
+        .eq('id', row.id);
+      row.status = 'closed';
+    } catch {
+      /* пропускаем */
+    }
+  }
+}
+
+function renderTables() {
+  if (!tablesEl) return;
+  const open = tables.filter((row) => row.status === 'open');
+  if (open.length < 2) {
+    tablesEl.classList.add('hidden');
+    tablesEl.innerHTML = '';
+    return;
+  }
+  tablesEl.classList.remove('hidden');
+  const me = myId();
+  tablesEl.innerHTML = open
+    .map((row) => {
+      const active = row.id === gameRowId ? ' active' : '';
+      const mine = me && (Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me) ? ' •' : '';
+      return `<button type="button" class="table-chip${active}" data-table="${row.id}">Стол ${row.game_no ?? 1}${mine}</button>`;
+    })
+    .join('');
+}
+
+async function switchTable(id) {
+  if (!id || id === gameRowId) return;
+  const row = tables.find((item) => item.id === id);
+  if (!row) return;
+  gameRowId = id;
+  rememberTable(id);
+  selected = null;
+  legal = [];
+  applyRow(row);
+  renderTables();
+  resetChatForGame();
+}
+
+if (tablesEl) {
+  tablesEl.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-table]');
+    if (!button) return;
+    switchTable(button.dataset.table).catch(() => {});
+  });
+}
+
+async function cloudStart() {
+  if (!cloudReady()) return false;
+  supabaseClient = supabaseClient ?? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  const table = supabaseClient.from(CFG.table || 'games');
+
+  tables = await loadTables();
+  let row = pickTable(tables);
+
+  if (!row) {
+    const fresh = new Board();
+    const base = { room: roomName(), board_state: fresh.fen(), is_white_turn: true, moves: [] };
+    let created = await table.insert([{ ...base, game_no: 1 }]).select().single();
+    if (created.error) {
+      created = await table.insert([base]).select().single();
+    }
+    if (created.error) {
+      tables = await loadTables();
+      row = pickTable(tables);
+    } else {
+      row = created.data;
+      tables = [row, ...tables];
+    }
+  }
+  if (!row) throw new Error('партия не создалась');
+
+  if (!Number(row.white_id ?? 0) && myId()) {
+    const base = { white_id: myId(), white_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let claim = photo
+      ? await table.update({ ...base, white_photo: photo }).eq('id', row.id).is('white_id', null).select()
+      : null;
+    if (!claim || claim.error) {
+      claim = await table.update(base).eq('id', row.id).is('white_id', null).select();
+    }
+    if (!claim.error && claim.data?.[0]) row = claim.data[0];
+  }
+
+  gameRowId = row?.id ?? null;
+  if (gameRowId) rememberTable(gameRowId);
+  cloudMode = true;
+  localMode = true;
+  applyRow(row);
+  renderTables();
+  syncMyPhoto();
+  cloudSubscribe();
+  startPeople();
+  return true;
+}
+
+let peopleChannel = null;
+
+async function syncMyPhoto() {
+  const photo = myPhoto();
+  if (!supabaseClient || !gameRowId || !photo) return;
+  const me = myId();
+  const patch = {};
+  if (myRole === 'white' && Number(game?.white?.id ?? 0) === me && game.white.photo !== photo) {
+    patch.white_photo = photo;
+  }
+  if (myRole === 'black' && Number(game?.black?.id ?? 0) === me && game.black.photo !== photo) {
+    patch.black_photo = photo;
+  }
+  if (!Object.keys(patch).length) return;
+  const res = await supabaseClient
+    .from(CFG.table || 'games')
+    .update(patch)
+    .eq('id', gameRowId)
+    .select()
+    .single();
+  if (!res.error && res.data) applyRow(res.data);
+}
+
+function startPeople() {
+  if (!supabaseClient || !peopleEl) return;
+  if (peopleChannel) supabaseClient.removeChannel(peopleChannel);
+  peopleChannel = supabaseClient.channel(`people-${roomName()}`, {
+    config: { presence: { key: String(myId() || Math.random().toString(36).slice(2)) } },
+  });
+  peopleChannel.on('presence', { event: 'sync' }, () => {
+    const count = Object.keys(peopleChannel.presenceState()).length;
+    peopleEl.textContent = '';
+  });
+  peopleChannel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') peopleChannel.track({ id: myId() || 0, at: Date.now() });
+  });
+}
+
+function cloudSubscribe() {
+  if (!supabaseClient) return;
+  if (cloudChannel) supabaseClient.removeChannel(cloudChannel);
+  cloudChannel = supabaseClient
+    .channel(`chess-${roomName()}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: CFG.table || 'games', filter: `room=eq.${roomName()}` },
+      (payload) => {
+        const row = payload?.new;
+        if (!row?.id) return;
+        const index = tables.findIndex((item) => item.id === row.id);
+        if (index >= 0) tables[index] = row;
+        else tables.unshift(row);
+        tables.sort((a, b) => Number(b.game_no ?? 0) - Number(a.game_no ?? 0));
+        if (row.id === gameRowId) applyRow(row);
+        renderTables();
+      },
+    )
+    .subscribe();
+}
+
+async function cloudWrite(fields) {
+  const table = supabaseClient.from(CFG.table || 'games');
+  const res = await table
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('id', gameRowId)
+    .select()
+    .single();
+  if (res.error) throw new Error(res.error.message);
+  applyRow(res.data);
+}
+
+async function cloudMove(from, to, promo) {
+  if (!game || busy) return;
+  if (!canMoveNow()) {
+    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
+    return;
+  }
+  busy = true;
+  try {
+    const position = new Board(game.fen);
+    const options = position.movesFrom(from).filter((move) => move.to === to);
+    const move = options.find((item) => item.promotion === promo) ?? options[0];
+    if (!move) {
+      statusEl.textContent = 'Так нельзя';
+      return;
+    }
+    const next = position.apply(move);
+    const moves = [...(game.moves ?? []), `${squareName(from)}-${squareName(to)}`];
+    await cloudWrite({ board_state: next.fen(), is_white_turn: next.turn === 'w', moves });
+    selected = null;
+    legal = [];
+  } catch (error) {
+    statusEl.textContent = `Облако недоступно: ${error.message}`;
+  } finally {
+    busy = false;
+  }
+}
+
+async function cloudReset() {
+  try {
+    const fresh = new Board();
+    await cloudWrite({ board_state: fresh.fen(), is_white_turn: true, moves: [], status: 'open' });
+    await clearChat();
+  } catch (error) {
+    statusEl.textContent = `Облако недоступно: ${error.message}`;
+  }
+}
+
+async function cloudResign() {
+  if (!cloudMode || !gameRowId) {
+    statusEl.textContent = 'Сдаться можно в партии из чата';
+    return;
+  }
+  if (game?.status !== 'open') {
+    statusEl.textContent = 'Партия уже закончена';
+    return;
+  }
+  if (myRole !== 'white' && myRole !== 'black') {
+    statusEl.textContent = 'Ты зритель — сдаваться некому';
+    return;
+  }
+  try {
+    await cloudWrite({ status: myRole === 'white' ? 'black_won' : 'white_won' });
+  } catch (error) {
+    statusEl.textContent = `Не получилось: ${error.message}`;
+  }
+}
+
+async function cloudCloseTable() {
+  if (!cloudMode || !gameRowId) {
+    statusEl.textContent = 'Закрывать можно партию из чата';
+    return;
+  }
+  const seated = myRole === 'white' || myRole === 'black';
+  if (!seated && Number(game?.white?.id ?? 0)) {
+    statusEl.textContent = 'Закрыть стол может только игрок этого стола';
+    return;
+  }
+  try {
+    await cloudWrite({ status: 'closed' });
+  } catch (error) {
+    statusEl.textContent = `Не получилось: ${error.message}`;
+    return;
+  }
+  const next = tables.find((row) => row.id !== gameRowId && row.status === 'open');
+  if (next) {
+    gameRowId = next.id;
+    rememberTable(next.id);
+    applyRow(next);
+    renderTables();
+    return;
+  }
+  await openFreshTable();
+}
+
+async function openFreshTable() {
+  const table = supabaseClient.from(CFG.table || 'games');
+  const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
+  const fresh = new Board();
+  const base = {
+    room: roomName(),
+    board_state: fresh.fen(),
+    is_white_turn: true,
+    moves: [],
+    white_id: myId() || null,
+    white_name: myName(),
+    black_id: null,
+    black_name: null,
+    status: 'open',
+    updated_at: new Date().toISOString(),
+  };
+  let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
+  if (created.error) created = await table.insert([base]).select().single();
+  if (created.error) {
+    statusEl.textContent = `Не получилось открыть новый стол: ${created.error.message}`;
+    return;
+  }
+  const row = created.data;
+  tables = [row, ...tables];
+  gameRowId = row.id;
+  rememberTable(row.id);
+  await closeMyOpenTables(row.id);
+  applyRow(row);
+  renderTables();
+  resetChatForGame();
+}
+
+const CHAT_TABLE = 'chess_messages';
+const chatHeadEl = document.getElementById('chatHead');
+const chatListEl = document.getElementById('chatList');
+const chatFormEl = document.getElementById('chatForm');
+const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
+
+let clearedForGame = null;
+
+function setChatLocked(locked) {
+  if (chatInputEl) {
+    chatInputEl.disabled = locked;
+    chatInputEl.placeholder = locked ? 'Партия окончена — чат закрыт' : 'Написать всем за доской…';
+  }
+  if (chatSendEl) chatSendEl.disabled = locked;
+}
+
+let chatMessages = [];
+let chatChannel = null;
+let chatReady = false;
+
+function chatRoom() {
+  return `${roomName()}#${gameRowId || 'lobby'}`;
+}
+
+function resetChatForGame() {
+  chatMessages = [];
+  renderChat();
+  loadChat().catch(() => {});
+}
+
+async function clearChat() {
+  const room = chatRoom();
+  chatMessages = [];
+  renderChat();
+  if (!supabaseClient) return;
+  await supabaseClient.from(CHAT_TABLE).delete().eq('room', room);
+}
+
+function chatTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderChat() {
+  if (!chatListEl) return;
+  if (!chatReady) {
+    chatListEl.innerHTML = '<div class="chat-empty">Чат включится после запуска SQL в Supabase.</div>';
+    return;
+  }
+  if (!chatMessages.length) {
+    chatListEl.innerHTML = '<div class="chat-empty">Сообщений пока нет</div>';
+    return;
+  }
+  chatListEl.innerHTML = chatMessages
+    .map((message) => {
+      const mine = Number(message.user_id ?? 0) === myId() ? ' mine' : '';
+      const name = escapeHtml(message.name || 'Гость');
+      const text = escapeHtml(message.text);
+      const avatar = avatarHtml(message.name, message.photo ?? '', 'avatar-sm');
+      return `<div class="chat-msg${mine}">${avatar}<span class="chat-name">${name}</span><span class="chat-text">${text}</span><span class="chat-time">${chatTime(message.created_at)}</span></div>`;
+    })
+    .join('');
+  chatListEl.scrollTop = chatListEl.scrollHeight;
+}
+
+function addChatMessage(message) {
+  if (!message?.id) return;
+  if (chatMessages.some((item) => item.id === message.id)) return;
+  chatMessages.push(message);
+  if (chatMessages.length > 60) chatMessages = chatMessages.slice(-60);
+  renderChat();
+}
+
+function subscribeChat() {
+  if (!supabaseClient || chatChannel) return;
+  chatChannel = supabaseClient
+    .channel(`chat-${chatRoom()}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: CHAT_TABLE, filter: `room=eq.${chatRoom()}` },
+      (payload) => addChatMessage(payload?.new),
+    )
+    .subscribe();
+}
+
+async function loadChat() {
+  if (!cloudReady() || !chatFormEl) return;
+  supabaseClient = supabaseClient ?? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  const res = await supabaseClient
+    .from(CHAT_TABLE)
+    .select('*')
+    .eq('room', chatRoom())
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (res.error) {
+    chatReady = false;
+    if (chatHeadEl) chatHeadEl.textContent = 'Чат недоступен';
+    renderChat();
+    return;
+  }
+  chatReady = true;
+  if (chatHeadEl) chatHeadEl.textContent = 'Чат партии';
+  chatMessages = (res.data ?? []).slice().reverse();
+  renderChat();
+  subscribeChat();
+}
+
+async function sendChat() {
+  if (!chatInputEl) return;
+  const text = chatInputEl.value.trim();
+  if (!text) return;
+  chatInputEl.value = '';
+  if (!chatReady) {
+    if (chatHeadEl) chatHeadEl.textContent = 'Чат ещё не включён — нужна таблица в Supabase';
+    return;
+  }
+  const base = { room: chatRoom(), user_id: myId() || null, name: myName(), text: text.slice(0, 200) };
+  const photo = myPhoto();
+  let res = photo
+    ? await supabaseClient.from(CHAT_TABLE).insert([{ ...base, photo }]).select().single()
+    : null;
+  if (!res || res.error) {
+    res = await supabaseClient.from(CHAT_TABLE).insert([base]).select().single();
+  }
+  if (res.error) {
+    if (chatHeadEl) chatHeadEl.textContent = `Чат: ${res.error.message}`;
+    return;
+  }
+  addChatMessage(res.data);
+}
+
+if (chatFormEl) {
+  chatFormEl.addEventListener('submit', (event) => {
+    event.preventDefault();
+    sendChat().catch(() => {});
+  });
+}
+
+function cellIndex(file, rankFromTop) {
+  const rank = flipped ? rankFromTop : 7 - rankFromTop;
+  const f = flipped ? 7 - file : file;
+  return f + rank * 8;
+}
+
+function render() {
+  board = new Board(game.fen);
+  boardEl.innerHTML = '';
+
+  for (let row = 0; row < 8; row += 1) {
+    for (let col = 0; col < 8; col += 1) {
+      const index = cellIndex(col, row);
+      const piece = board.at(index);
+      const isLight = (Math.floor(index / 8) + (index % 8)) % 2 === 1;
+
+      const cell = document.createElement('div');
+      cell.className = `cell ${isLight ? 'light' : 'dark'}`;
+      cell.dataset.index = String(index);
+      if (piece) {
+        const glyph = document.createElement('span');
+        const white = piece === piece.toUpperCase();
+        glyph.className = white ? 'piece piece-w' : 'piece piece-b';
+        glyph.innerHTML = pieceImage(piece);
+        cell.appendChild(glyph);
+      }
+
+      if (selected === index) cell.classList.add('selected');
+      const target = legal.find((move) => move.to === index);
+      if (target) cell.classList.add(target.captured ? 'capture' : 'move-target');
+
+      if (game.moves.length) {
+        const last = game.moves[game.moves.length - 1];
+        const [fromName, toName] = last.replace(/[qrbn]$/, '').split('-');
+        if ([fromName, toName].includes(squareName(index))) cell.classList.add('last-move');
+      }
+
+      if (row === 7) {
+        const label = document.createElement('span');
+        label.className = 'coord file';
+        const fileLetter = 'abcdefgh'[flipped ? 7 - col : col];
+        label.textContent = fileLetter;
+        cell.appendChild(label);
+      }
+      if (col === 0) {
+        const label = document.createElement('span');
+        label.className = 'coord rank';
+        label.textContent = String(flipped ? row + 1 : 8 - row);
+        cell.appendChild(label);
+      }
+
+      cell.addEventListener('click', () => onCell(index));
+      boardEl.appendChild(cell);
+    }
+  }
+
+  gameIdEl.textContent = game.id ? `#${game.id}` : '';
+
+  if (roleEl) {
+    if (myRole === 'white') {      roleEl.className = 'role white';
+      roleEl.textContent = 'Ты играешь белыми';
+    } else if (myRole === 'black') {
+      roleEl.className = 'role black';
+      roleEl.textContent = 'Ты играешь чёрными';
+    } else if (myRole === 'spectator') {
+      roleEl.className = 'role spectator';
+      roleEl.textContent = 'Ты смотришь';
+    } else {
+      roleEl.className = 'role hidden';
+      roleEl.textContent = '';
+    }
+  }
+
+  playersEl.innerHTML = '';
+
+  const entries = [
+    { side: 'Чёрные', player: game.black, turn: board.turn === 'b' },
+    { side: 'Белые', player: game.white, turn: board.turn === 'w' },
+  ];
+
+  for (const entry of entries) {
+    const span = document.createElement('span');
+    const name = entry.player?.id ? entry.player.name : 'свободно';
+    const mine = Boolean(entry.player?.id) && entry.player.id === myId();
+    const label = `${entry.side}: ${escapeHtml(name)}${mine ? ' (вы)' : ''}${entry.turn && game.status === 'open' ? ' •' : ''}`;
+    span.className = `player${mine ? ' mine' : ''}`;
+    const avatar = entry.player?.id ? avatarHtml(name, entry.player?.photo ?? '') : '';
+    span.innerHTML = `${avatar}<span class="player-label">${label}</span>`;
+    playersEl.appendChild(span);
+  }
+
+  movesEl.textContent = game.moves.length ? game.moves.slice(-10).join('  ') : 'ходов пока нет';
+
+  seatsEl.classList.toggle('hidden', !offerSeat);
+  if (offerSeat) seatsTextEl.textContent = 'Чёрные свободны: играть или просто смотреть?';
+
+  const turnText = board.turn === 'w' ? 'белых' : 'чёрных';
+
+  if (resultEl) {
+    const won = game.status === 'done' ? game.winner : null;
+    const draw = game.status === 'done' && !won;
+    if (won) {
+      const sideName = won === 'w' ? 'Белые' : 'Чёрные';
+      const iAmWinner = myRole === (won === 'w' ? 'white' : 'black');
+      const iAmLoser = (myRole === 'white' || myRole === 'black') && !iAmWinner;
+      const text = iAmWinner ? 'Вы выиграли' : iAmLoser ? 'Вы проиграли' : `${sideName} победили`;
+      resultEl.className = `result ${iAmWinner ? 'win' : iAmLoser ? 'lose' : 'draw'}`;
+      resultEl.textContent = text;
+    } else if (draw) {
+      resultEl.className = 'result draw';
+      resultEl.textContent = 'Ничья';
+    } else {
+      resultEl.className = 'result hidden';
+      resultEl.textContent = '';
+    }
+  }
+  if (game.status === 'closed') {
+    statusEl.textContent = 'Стол закрыт';
+  } else if (game.status === 'done') {
+    const winner = game.winner === 'w' ? game.white?.name : game.winner === 'b' ? game.black?.name : null;
+    statusEl.textContent = winner ? `Партия окончена. Победили: ${winner}` : 'Партия окончена. Ничья';
+  } else if (!game.black?.id) {
+    statusEl.textContent = myRole === 'white' ? 'Ждём соперника' : `Ход ${turnText}`;
+  } else if (myRole === 'spectator') {
+    statusEl.textContent = `Зритель. Ход ${turnText}`;
+  } else if (myRole === 'white' || myRole === 'black') {
+    statusEl.textContent = canMoveNow() ? 'Твой ход' : `Ход ${turnText}`;
+  } else {
+    statusEl.textContent = `Ход ${turnText}`;
+  }
+
+  if (myRole === 'spectator') {
+    hintEl.textContent = 'Ты зритель: играют двое. Их ходы появляются сами.';
+  } else if (myRole === 'white' || myRole === 'black') {
+    hintEl.textContent = `Ты играешь ${myRole === 'white' ? 'белыми' : 'чёрными'}. Тапни фигуру, потом клетку.`;
+  } else {
+    hintEl.textContent = 'Тапни фигуру, потом клетку. Ход отправится сразу.';
+  }
+}
+
+function onCell(index) {
+  if (!game || game.status !== 'open' || busy) return;
+  if (!canMoveNow()) {
+    statusEl.textContent = myRole === 'spectator' ? 'Ты зритель — ходить нельзя' : 'Сейчас не твой ход';
+    return;
+  }
+
+  const piece = board.at(index);
+  const color = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+
+  if (selected === null) {
+    if (!piece || color !== board.turn) return;
+    selected = index;
+    legal = board.movesFrom(index);
+    render();
+    return;
+  }
+
+  if (index === selected) {
+    selected = null;
+    legal = [];
+    render();
+    return;
+  }
+
+  const candidate = legal.find((move) => move.to === index);
+  if (!candidate) {
+    if (piece && color === board.turn) {
+      selected = index;
+      legal = board.movesFrom(index);
+      render();
+      return;
+    }
+    selected = null;
+    legal = [];
+    render();
+    return;
+  }
+
+  const sameTarget = legal.filter((move) => move.to === index);
+  if (sameTarget.some((move) => move.promotion)) {
+    pendingPromotion = { from: selected, to: index };
+    promoEl.classList.remove('hidden');
+    return;
+  }
+
+  sendMove(selected, index);
+}
+
+async function sendMove(from, to, promo) {
+  if (cloudMode) {
+    await cloudMove(from, to, promo);
+    return;
+  }
+  if (localMode) {
+    const options = board.movesFrom(from).filter((m) => m.to === to);
+    const move = options.find((m) => m.promotion === promo) ?? options[0];
+    if (move) {
+      const next = board.apply(move);
+      game.fen = next.fen();
+      game.moves.push(`${squareName(from)}-${squareName(to)}`);
+      board = next;
+    }
+    selected = null;
+    legal = [];
+    render();
+    saveGame();
+    return;
+  }
+  busy = true;
+  try {
+    const result = await api('/api/move', { initData: signedInit(), from, to, promo });
+    if (result.error) {
+      statusEl.textContent = result.error;
+    } else if (result.game) {
+      game = result.game;
+    }
+    selected = null;
+    legal = [];
+    render();
+    saveGame();
+  } catch (error) {
+    statusEl.textContent = 'Нет связи с сервером';
+  } finally {
+    busy = false;
+  }
+}
+
+promoEl.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-piece]');
+  if (!button || !pendingPromotion) return;
+  const { from, to } = pendingPromotion;
+  pendingPromotion = null;
+  promoEl.classList.add('hidden');
+  sendMove(from, to, button.dataset.piece);
+});
+
+document.getElementById('flip').addEventListener('click', () => {
+  flipped = !flipped;
+  render();
+  saveGame();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  clearGame();
+  selected = null;
+  legal = [];
+  pendingPromotion = null;
+  promoEl.classList.add('hidden');
+  flipped = false;
+  if (cloudMode) {
+    cloudReset();
+    return;
+  }
+  if (localMode || !myChat() || !myId()) {
+    localMode = true;
+    startLocal();
+    return;
+  }
+  game = null;
+  enter();
+});
+
+document.getElementById('resign').addEventListener('click', () => {
+  cloudResign().catch(() => {});
+});
+
+document.getElementById('closeTable').addEventListener('click', () => {
+  cloudCloseTable().catch(() => {});
+});
+
+watchOnlyEl.addEventListener('click', () => {
+  offerSeat = false;
+  seatsEl.classList.add('hidden');
+  render();
+});
+
+takeBlackEl.addEventListener('click', async () => {
+  if (!cloudMode || !supabaseClient || !gameRowId) return;
+  offerSeat = false;
+  seatsEl.classList.add('hidden');
+  try {
+    const base = { black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let res = photo
+      ? await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ ...base, black_photo: photo })
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single()
+      : null;
+    if (!res || res.error) {
+      res = await supabaseClient
+        .from(CFG.table || 'games')
+        .update(base)
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single();
+    }
+    if (res.error) throw new Error(res.error.message);
+    myRole = 'black';
+    flipped = true;
+    applyRow(res.data);
+    saveGame();
+  } catch {
+    statusEl.textContent = 'Место за чёрных уже заняли — ты зритель';
+    render();
+  }
+});
+
+window.addEventListener('pagehide', saveGame);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveGame();
+});
+
+document.getElementById('copyInvite').addEventListener('click', async () => {
+  const text = `Шахматы, партия #${game.id}: ${game.white?.name ?? ''} — ${game.black?.name ?? 'нужен соперник'}. Открывай мини-приложение и играй.`;
+  try {
+    await navigator.clipboard.writeText(text);
+    hintEl.textContent = 'Текст скопирован — вставь в чат.';
+  } catch {
+    hintEl.textContent = text;
+  }
+});
+
+async function enter() {
+  if (cloudReady()) {
+    try {
+      if (await cloudStart()) {
+        loadChat().catch(() => {});
+        return;
+      }
+    } catch (error) {
+      cloudMode = false;
+      statusEl.textContent = `Облако не отвечает: ${error.message}`;
+    }
+  }
+  if (!myChat() || !myId()) {
+    startLocal();
+    return;
+  }
+  try {
+    const result = await api('/api/enter', { initData: signedInit() });
+    if (result?.error || !result?.game) {
+      startLocal();
+      return;
+    }
+    game = result.game;
+    flipped = game.role === 'black';
+    render();
+    saveGame();
+    poll();
+  } catch {
+    startLocal();
+  }
+}
+
+async function poll() {
+  try {
+    const result = await api(`/api/state?chat=${myChat()}&user=${myId()}`);
+    if (result.game && result.game.id === game?.id) {
+      const changed = result.game.moves.length !== game.moves.length || result.game.status !== game.status;
+      game = result.game;
+      if (changed) {
+        render();
+        saveGame();
+      }
+    }
+  } catch {
+    /* тихо: попробуем в следующий раз */
+  }
+  setTimeout(poll, 2500);
+}
+
+const startMenuEl = document.getElementById('startMenu');
+
+function closeStart() {
+  startMenuEl?.classList.add('hidden');
+}
+
+async function ensureCloud() {
+  if (supabaseClient || !cloudReady()) return;
+  supabaseClient = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+  tables = await loadTables();
+}
+
+document.getElementById('startHuman')?.addEventListener('click', async () => {
+  closeStart();
+  statusEl.textContent = 'Открываем стол…';
+  try {
+    await ensureCloud();
+    await createHumanTable();
+  } catch (error) {
+    statusEl.textContent = `Ошибка: ${error.message}`;
+  }
+});
+
+document.getElementById('startBot')?.addEventListener('click', async () => {
+  showStartStep('level');
+  try {
+    await ensureCloud();
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+let startLevelName = 'easy';
+
+function showStartStep(step) {
+  const map = { mode: 'startStepMode', level: 'startStepLevel', side: 'startStepSide' };
+  for (const [key, id] of Object.entries(map)) {
+    document.getElementById(id)?.classList.toggle('hidden', key !== step);
+  }
+  startMenuEl?.classList.remove('hidden');
+}
+
+document.querySelectorAll('.start-level').forEach((button) => {
+  button.addEventListener('click', () => {
+    startLevelName = button.dataset.level || 'easy';
+    showStartStep('side');
+  });
+});
+
+document.querySelectorAll('.start-side').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const side = button.dataset.side === 'b' ? 'b' : 'w';
+    closeStart();
+    try {
+      await ensureCloud();
+      await createBotTable(side, startLevelName);
+    } catch (error) {
+      statusEl.textContent = `Бот не сел: ${error.message}`;
+    }
+  });
+});
+
+document.querySelectorAll('[data-back]').forEach((button) => {
+  button.addEventListener('click', () => showStartStep(button.dataset.back));
+});
+
+
+function startLocal() {
+  localMode = true;
+  const saved = loadGame();
+  if (saved?.game) {
+    game = { ...saved.game, role: 'white', canMove: saved.game.status !== 'done' };
+    flipped = Boolean(saved.flipped);
+  } else {
+    board = new Board();
+    game = { id: 0, fen: board.fen(), moves: [], status: 'open', winner: null, white: { id: myId(), name: 'Первый' }, black: { name: 'второй игрок' }, role: 'white', canMove: true };
+    flipped = false;
+  }
+  selected = null;
+  legal = [];
+  render();
+  saveGame();
+  hintEl.textContent = saved?.game
+    ? 'Партия сохранена на этом телефоне: продолжаем с того же хода.'
+    : 'Без сервера: ходят оба по очереди на этом экране. Ходы в чат не уходят.';
+}
+
+
+const floatBtnEl = document.getElementById('floatBtn');
+const floatMenuEl = document.getElementById('floatMenu');
+const FLOAT_KEY = 'chess-float-pos';
+const BOT_LEVEL_NAMES = { easy: 'Лёгкий', mid: 'Средний', hard: 'Гроссмейстер' };
+
+let floatStep = 'root';
+let floatLevel = 'easy';
+let dragState = null;
+
+function placeFloat(left, top) {
+  if (!floatBtnEl) return { x: 8, y: 8 };
+  const size = floatBtnEl.offsetWidth || 44;
+  const x = Math.min(Math.max(8, left), Math.max(8, window.innerWidth - size - 8));
+  const y = Math.min(Math.max(8, top), Math.max(8, window.innerHeight - size - 8));
+  floatBtnEl.style.left = `${x}px`;
+  floatBtnEl.style.top = `${y}px`;
+  floatBtnEl.style.right = 'auto';
+  return { x, y };
+}
+
+function loadFloatPosition() {
+  if (!floatBtnEl) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(FLOAT_KEY) ?? 'null');
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      placeFloat(saved.x, saved.y);
+      return;
+    }
+  } catch {
+    /* позиция по умолчанию */
+  }
+  placeFloat(window.innerWidth - 60, 10);
+}
+
+function closeFloatMenu() {
+  if (!floatMenuEl) return;
+  floatMenuEl.classList.add('hidden');
+  floatStep = 'root';
+}
+
+function openFloatMenuAt() {
+  if (!floatMenuEl || !floatBtnEl) return;
+  const rect = floatBtnEl.getBoundingClientRect();
+  renderFloatMenu();
+  floatMenuEl.classList.remove('hidden');
+  const menuRect = floatMenuEl.getBoundingClientRect();
+  const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuRect.width - 8));
+  const top = Math.min(rect.bottom + 6, Math.max(8, window.innerHeight - menuRect.height - 8));
+  floatMenuEl.style.left = `${left}px`;
+  floatMenuEl.style.top = `${top}px`;
+}
+
+function menuItem(text, action) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = text;
+  button.addEventListener('click', () => action().catch(() => {}));
+  return button;
+}
+
+async function autoSeatBlack() {
+  if (!supabaseClient || !cloudMode || !gameRowId || !myId() || !game) return;
+  if (game.status !== 'open') return;
+  if (Number(game.black?.id ?? 0)) return;
+  if (Number(game.white?.id ?? 0) === myId()) return;
+  try {
+    const base = { black_id: myId(), black_name: myName(), updated_at: new Date().toISOString() };
+    const photo = myPhoto();
+    let res = photo
+      ? await supabaseClient
+        .from(CFG.table || 'games')
+        .update({ ...base, black_photo: photo })
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single()
+      : null;
+    if (!res || res.error) {
+      res = await supabaseClient
+        .from(CFG.table || 'games')
+        .update(base)
+        .eq('id', gameRowId)
+        .is('black_id', null)
+        .select()
+        .single();
+    }
+    if (!res.error && res.data) {
+      applyRow(res.data);
+      saveGame();
+    }
+  } catch {
+    /* место уже заняли — останемся зрителем */
+  }
+}
+
+async function adoptTable(row) {
+  gameRowId = row.id;
+  cloudMode = true;
+  localMode = true;
+  rememberTable(row.id);
+  applyRow(row);
+  renderTables();
+  syncMyPhoto();
+  cloudSubscribe();
+  startPeople();
+  closeFloatMenu();
+  await autoSeatBlack();
+}
+
+async function createHumanTable() {
+  if (!cloudReady() || !supabaseClient) {
+    statusEl.textContent = 'Без связи нельзя позвать соперника';
+    return;
+  }
+  tables = await loadTables();
+  const me = myId() || 0;
+  const open = tables.filter((row) => row.status === 'open');
+  const mine = open.find((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+  const freeSeat = open.find((row) => !Number(row.black_id ?? 0) && Number(row.white_id ?? 0) !== me);
+  const existing = mine ?? freeSeat ?? open[0] ?? null;
+
+  if (existing) {
+    await adoptTable(existing);
+    closeStart();
+    resetChatForGame();
+    statusEl.textContent = Number(existing.white_id ?? 0) === me || Number(existing.black_id ?? 0) === me
+      ? 'Стол найден — продолжаем'
+      : 'Стол найден';
+    return;
+  }
+
+  const table = supabaseClient.from(CFG.table || 'games');
+  const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
+  const fresh = new Board();
+  const base = {
+    room: roomName(),
+    board_state: fresh.fen(),
+    is_white_turn: true,
+    moves: [],
+    white_id: me || null,
+    white_name: myName(),
+    status: 'open',
+    updated_at: new Date().toISOString(),
+  };
+  let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
+  if (created.error) created = await table.insert([base]).select().single();
+  if (created.error) {
+    statusEl.textContent = `Стол не открылся: ${created.error.message}`;
+    return;
+  }
+  const row = created.data;
+  tables = [row, ...tables];
+  await closeMyOpenTables(row.id);
+  await adoptTable(row);
+  resetChatForGame();
+  statusEl.textContent = myChat()
+    ? 'Стол открыт. Приглашение уйдёт в чат'
+    : 'Стол открыт. Соперник заходит с другого телефона';
+}
+
+async function createBotTable(side, level) {
+  if (!cloudReady() || !supabaseClient) {
+    statusEl.textContent = 'Без связи нельзя позвать бота';
+    return;
+  }
+  const botId = Number(CFG.botId ?? 0);
+  if (!botId) {
+    statusEl.textContent = 'Бот не настроен';
+    return;
+  }
+  const botName = `Бот · ${BOT_LEVEL_NAMES[level] ?? BOT_LEVEL_NAMES.easy}`;
+  const human = { id: myId() || 0, name: myName() };
+  const machine = { id: botId, name: botName };
+  const white = side === 'w' ? human : machine;
+  const black = side === 'w' ? machine : human;
+
+  const table = supabaseClient.from(CFG.table || 'games');
+  const nextNo = tables.reduce((max, row) => Math.max(max, Number(row.game_no ?? 0)), 0) + 1;
+  const fresh = new Board();
+  const base = {
+    room: roomName(),
+    board_state: fresh.fen(),
+    is_white_turn: true,
+    moves: [],
+    white_id: white.id || null,
+    white_name: white.name,
+    black_id: black.id || null,
+    black_name: black.name,
+    status: 'open',
+    updated_at: new Date().toISOString(),
+  };
+
+  let created = await table.insert([{ ...base, game_no: nextNo }]).select().single();
+  if (created.error) created = await table.insert([base]).select().single();
+  if (created.error) {
+    statusEl.textContent = `Бот не сел: ${created.error.message}`;
+    return;
+  }
+  const row = created.data;
+  tables = [row, ...tables];
+  gameRowId = row.id;
+  cloudMode = true;
+  localMode = true;
+  rememberTable(row.id);
+  await closeMyOpenTables(row.id);
+  applyRow(row);
+  renderTables();
+  syncMyPhoto();
+  cloudSubscribe();
+  startPeople();
+  resetChatForGame();
+  closeFloatMenu();
+  statusEl.textContent = `Стол с ботом (${BOT_LEVEL_NAMES[level] ?? ''}) готов`;
+}
+
+function renderFloatMenu() {
+  if (!floatMenuEl) return;
+  floatMenuEl.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'float-menu-title';
+  title.textContent = 'Меню';
+  floatMenuEl.appendChild(title);
+
+  if (floatStep === 'root') {
+    floatMenuEl.appendChild(menuItem('♟ Игра', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('🎲 Предложить спор', async () => {
+      closeFloatMenu();
+      hintEl.textContent = 'Напиши в чат: спор Локо-Динамо — бот соберёт ставки';
+    }));
+    floatMenuEl.appendChild(menuItem('🍺 Долги', async () => {
+      closeFloatMenu();
+      hintEl.textContent = 'Напиши в чат: долги — бот покажет, кто кому проставляется';
+    }));
+    floatMenuEl.appendChild(menuItem('ℹ Правила', async () => { closeFloatMenu(); openRules(); }));
+    return;
+  }
+
+  if (floatStep === 'mode') {
+    floatMenuEl.appendChild(menuItem('👤 Соперник', async () => {
+      await openFreshTable();
+      closeFloatMenu();
+      hintEl.textContent = 'Стол создан. Позови соперника в чате';
+    }));
+    floatMenuEl.appendChild(menuItem('🤖 Бот', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'root'; renderFloatMenu(); }));
+    return;
+  }
+
+  if (floatStep === 'level') {
+    floatMenuEl.appendChild(menuItem('Лёгкий', async () => { floatLevel = 'easy'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Средний', async () => { floatLevel = 'mid'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('Гроссмейстер', async () => { floatLevel = 'hard'; floatStep = 'side'; renderFloatMenu(); }));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'mode'; renderFloatMenu(); }));
+    return;
+  }
+
+  if (floatStep === 'side') {
+    floatMenuEl.appendChild(menuItem('♔ Я белые', async () => createBotTable('w', floatLevel)));
+    floatMenuEl.appendChild(menuItem('♚ Я чёрные', async () => createBotTable('b', floatLevel)));
+    floatMenuEl.appendChild(menuItem('← Назад', async () => { floatStep = 'level'; renderFloatMenu(); }));
+    return;
+  }
+}
+
+if (floatBtnEl) {
+  floatBtnEl.addEventListener('pointerdown', (event) => {
+    const rect = floatBtnEl.getBoundingClientRect();
+    dragState = {
+      startX: event.clientX,
+      startY: event.clientY,
+      x: rect.left,
+      y: rect.top,
+      moved: false,
+      last: { x: rect.left, y: rect.top },
+    };
+    try { floatBtnEl.setPointerCapture(event.pointerId); } catch { /* старые браузеры */ }
+  });
+
+  floatBtnEl.addEventListener('pointermove', (event) => {
+    if (!dragState) return;
+    const dx = event.clientX - dragState.startX;
+    const dy = event.clientY - dragState.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragState.moved = true;
+    dragState.last = placeFloat(dragState.x + dx, dragState.y + dy);
+  });
+
+  floatBtnEl.addEventListener('pointerup', () => {
+    if (!dragState) return;
+    const state = dragState;
+    dragState = null;
+    if (state.moved) {
+      try { localStorage.setItem(FLOAT_KEY, JSON.stringify(state.last)); } catch { /* без сохранения */ }
+      return;
+    }
+    if (floatMenuEl && !floatMenuEl.classList.contains('hidden')) closeFloatMenu();
+    else openFloatMenuAt();
+  });
+
+  loadFloatPosition();
+  window.addEventListener('resize', () => {
+    if (!floatBtnEl) return;
+    const rect = floatBtnEl.getBoundingClientRect();
+    placeFloat(rect.left, rect.top);
+    if (floatMenuEl && !floatMenuEl.classList.contains('hidden')) openFloatMenuAt();
+  });
+}
+
+function openTableRow(rows) {
+  const open = (rows ?? []).filter((row) => row.status === 'open');
+  if (!open.length) return null;
+  const saved = savedTableId();
+  const bySaved = saved ? open.find((row) => row.id === saved) : null;
+  if (bySaved) return bySaved;
+  const newest = (list) => [...list].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0] ?? null;
+  const me = myId();
+  if (me) {
+    const mine = open.filter((row) => Number(row.white_id ?? 0) === me || Number(row.black_id ?? 0) === me);
+    const latest = newest(mine);
+    if (latest) return latest;
+  }
+  return newest(open);
+}
+
+async function boot() {
+  if (!cloudReady()) {
+    showStartStep('mode');
+    return;
+  }
+  try {
+    await ensureCloud();
+    tables = await loadTables();
+    const row = openTableRow(tables);
+    if (!row) {
+      showStartStep('mode');
+      return;
+    }
+    closeStart();
+    gameRowId = row.id;
+    rememberTable(row.id);
+    cloudMode = true;
+    localMode = true;
+    applyRow(row);
+    renderTables();
+    syncMyPhoto();
+    cloudSubscribe();
+    startPeople();
+    await autoSeatBlack();
+    resetChatForGame();
+  } catch (error) {
+    statusEl.textContent = `Облако не отвечает: ${error.message}`;
+    showStartStep('mode');
+  }
+}
+
+boot();
+
+</script>
+  </body>
+</html>
