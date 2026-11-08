@@ -2168,7 +2168,7 @@ function chatRoom() {
 function resetChatForGame() {
   chatMessages = [];
   renderChat();
-  if (chatReady) loadChat();
+  loadChat().catch(() => {});
 }
 
 async function clearChat() {
@@ -2243,6 +2243,7 @@ async function loadChat() {
     return;
   }
   chatReady = true;
+  if (chatHeadEl) chatHeadEl.textContent = 'Чат партии';
   chatMessages = (res.data ?? []).slice().reverse();
   renderChat();
   subscribeChat();
@@ -3091,6 +3092,7 @@ async function boot() {
     cloudSubscribe();
     startPeople();
     await autoSeatBlack();
+    resetChatForGame();
   } catch (error) {
     statusEl.textContent = `Облако не отвечает: ${error.message}`;
     showStartStep('mode');
