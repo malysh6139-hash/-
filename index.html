@@ -1984,7 +1984,7 @@ function startPeople() {
   });
   peopleChannel.on('presence', { event: 'sync' }, () => {
     const count = Object.keys(peopleChannel.presenceState()).length;
-    peopleEl.textContent = count > 0 ? `За доской: ${count}` : '';
+    peopleEl.textContent = '';
   });
   peopleChannel.subscribe((status) => {
     if (status === 'SUBSCRIBED') peopleChannel.track({ id: myId() || 0, at: Date.now() });
