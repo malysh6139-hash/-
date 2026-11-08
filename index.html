@@ -1719,7 +1719,9 @@ function cloudReady() {
 }
 
 function roomName() {
-  return myChat() ? `chat-${myChat()}` : 'demo';
+  if (myChat()) return `chat-${myChat()}`;
+  if (myId()) return `user-${myId()}`;
+  return 'demo';
 }
 
 function rowToGame(row) {
