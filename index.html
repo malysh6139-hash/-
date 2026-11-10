@@ -2059,7 +2059,12 @@ async function cloudMove(from, to, promo) {
     }
     const next = position.apply(move);
     const moves = [...(game.moves ?? []), `${squareName(from)}-${squareName(to)}`];
-    await cloudWrite({ board_state: next.fen(), is_white_turn: next.turn === 'w', moves });
+    const result = next.status();
+    const patch = { board_state: next.fen(), is_white_turn: next.turn === 'w', moves };
+    if (result.over) {
+      patch.status = result.winner === 'w' ? 'white_won' : result.winner === 'b' ? 'black_won' : 'done';
+    }
+    await cloudWrite(patch);
     selected = null;
     legal = [];
   } catch (error) {

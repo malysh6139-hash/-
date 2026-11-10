@@ -1,3 +1,21 @@
+<script>
+(function () {
+  try {
+    var have = localStorage.getItem('appBuild') || '';
+    var here = new URLSearchParams(location.search).get('b') || '';
+    fetch('build.json?ts=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) {
+        if (!v || !v.build) return;
+        if (here === v.build) { localStorage.setItem('appBuild', v.build); return; }
+        if (have === v.build) return;
+        localStorage.setItem('appBuild', v.build);
+        location.replace(location.pathname + '?b=' + encodeURIComponent(v.build));
+      })
+      .catch(function () {});
+  } catch (e) {}
+})();
+</script>
 <!DOCTYPE html>
 <html lang="ru">
   <head>
@@ -2041,7 +2059,12 @@ async function cloudMove(from, to, promo) {
     }
     const next = position.apply(move);
     const moves = [...(game.moves ?? []), `${squareName(from)}-${squareName(to)}`];
-    await cloudWrite({ board_state: next.fen(), is_white_turn: next.turn === 'w', moves });
+    const result = next.status();
+    const patch = { board_state: next.fen(), is_white_turn: next.turn === 'w', moves };
+    if (result.over) {
+      patch.status = result.winner === 'w' ? 'white_won' : result.winner === 'b' ? 'black_won' : 'done';
+    }
+    await cloudWrite(patch);
     selected = null;
     legal = [];
   } catch (error) {
